@@ -1,0 +1,142 @@
+import { useState } from "react";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Plus, Search, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupplierSheet } from "@/components/suppliers/SupplierSheet";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/contexts/CompanyContext";
+
+export default function Fornecedores() {
+    const { selectedCompany } = useCompany();
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [editingSupplier, setEditingSupplier] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const { data: suppliers, isLoading } = useQuery({
+        queryKey: ["suppliers", selectedCompany?.id],
+        queryFn: async () => {
+            if (!selectedCompany?.id) return [];
+            const { data, error } = await supabase
+                .from("suppliers")
+                .select("*")
+                .eq("company_id", selectedCompany.id)
+                .order("razao_social");
+
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!selectedCompany?.id,
+    });
+
+    const handleEdit = (supplier: any) => {
+        setEditingSupplier(supplier);
+        setIsSheetOpen(true);
+    };
+
+    const handleNew = () => {
+        setEditingSupplier(null);
+        setIsSheetOpen(true);
+    };
+
+    const filteredSuppliers = suppliers?.filter(supplier =>
+        supplier.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (supplier.nome_fantasia && supplier.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (supplier.cpf_cnpj && supplier.cpf_cnpj.includes(searchTerm))
+    );
+
+    return (
+        <AppLayout title="Fornecedores">
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-3xl font-bold tracking-tight">Fornecedores</h2>
+                    <Button onClick={handleNew}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Novo Fornecedor
+                    </Button>
+                </div>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                        <CardTitle>Listagem de Fornecedores</CardTitle>
+                        <div className="relative w-72">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por nome ou CPF/CNPJ..."
+                                className="pl-8"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Razão Social / Nome</TableHead>
+                                    <TableHead>Nome Fantasia</TableHead>
+                                    <TableHead>CPF/CNPJ</TableHead>
+                                    <TableHead>Contato</TableHead>
+                                    <TableHead className="text-right">Ações</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                            Carregando fornecedores...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filteredSuppliers?.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                            Nenhum fornecedor encontrado.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredSuppliers?.map((supplier) => (
+                                        <TableRow key={supplier.id}>
+                                            <TableCell className="font-medium">{supplier.razao_social}</TableCell>
+                                            <TableCell>{supplier.nome_fantasia || "-"}</TableCell>
+                                            <TableCell>{supplier.cpf_cnpj || "-"}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col text-sm">
+                                                    <span>{supplier.email}</span>
+                                                    <span className="text-muted-foreground">{supplier.celular || supplier.telefone}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(supplier)}>
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <SupplierSheet
+                    isOpen={isSheetOpen}
+                    onClose={() => {
+                        setIsSheetOpen(false);
+                        setEditingSupplier(null);
+                    }}
+                    supplierToEdit={editingSupplier}
+                />
+            </div>
+        </AppLayout>
+    );
+}

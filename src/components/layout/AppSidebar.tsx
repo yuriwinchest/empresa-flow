@@ -98,6 +98,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Financeiro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/financeiro")}>
+                  <Link to="/financeiro">
+                    <LayoutDashboard />
+                    <span>Visão Geral</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {financeiroItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
