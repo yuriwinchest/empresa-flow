@@ -11,6 +11,7 @@ import Financeiro from "./pages/Financeiro";
 import Empresas from "./pages/Empresas";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
+import Movimentacoes from "./pages/Movimentacoes";
 import Categorias from "./pages/Categorias";
 import ContasBancarias from "./pages/ContasBancarias";
 import ContasPagar from "./pages/ContasPagar";
@@ -38,6 +39,8 @@ const App = () => (
               <Route path="/empresas" element={<Empresas />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/fornecedores" element={<Fornecedores />} />
+              <Route path="/movimentacoes" element={<Movimentacoes />} />
+              <Route path="/movimentacoes/*" element={<Movimentacoes />} />
               <Route path="/categorias" element={<Categorias />} />
               <Route path="/contas-bancarias" element={<ContasBancarias />} />
               <Route path="/contas-pagar" element={<ContasPagar />} />
