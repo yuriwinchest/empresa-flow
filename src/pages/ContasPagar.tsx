@@ -20,10 +20,14 @@ import { format } from "date-fns";
 import { AccountsPayable } from "@/types/finance";
 import { Badge } from "@/components/ui/badge";
 
+import { PaymentModal } from "@/components/transactions/PaymentModal";
+
 export default function ContasPagar() {
     const { selectedCompany } = useCompany();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsPayable | undefined>(undefined);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentItem, setPaymentItem] = useState<AccountsPayable | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
@@ -168,7 +172,21 @@ export default function ContasPagar() {
                                             <TableCell>
                                                 {getStatusBadge(bill.status, bill.due_date)}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right flex justify-end gap-2">
+                                                {bill.status === 'pending' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-600 border-green-200 hover:bg-green-50"
+                                                        onClick={() => {
+                                                            setPaymentItem(bill);
+                                                            setIsPaymentModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <DollarSign className="h-4 w-4 mr-1" />
+                                                        Baixar
+                                                    </Button>
+                                                )}
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(bill)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
@@ -189,6 +207,24 @@ export default function ContasPagar() {
                     }}
                     dataToEdit={editingItem}
                 />
+
+                {paymentItem && (
+                    <PaymentModal
+                        isOpen={isPaymentModalOpen}
+                        onClose={() => {
+                            setIsPaymentModalOpen(false);
+                            setPaymentItem(null);
+                        }}
+                        accountingId={paymentItem.id}
+                        type="payable"
+                        initialAmount={paymentItem.amount}
+                        description={`Pagamento: ${paymentItem.description}`}
+                        onSuccess={() => {
+                            // Refetch data
+                            window.location.reload(); // Simple reload or invalidate query
+                        }}
+                    />
+                )}
             </div>
         </AppLayout>
     );

@@ -20,10 +20,14 @@ import { format } from "date-fns";
 import { AccountsReceivable } from "@/types/finance";
 import { Badge } from "@/components/ui/badge";
 
+import { PaymentModal } from "@/components/transactions/PaymentModal";
+
 export default function ContasReceber() {
     const { selectedCompany } = useCompany();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsReceivable | undefined>(undefined);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentItem, setPaymentItem] = useState<AccountsReceivable | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
@@ -166,7 +170,21 @@ export default function ContasReceber() {
                                             <TableCell>
                                                 {getStatusBadge(bill.status, bill.due_date)}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right flex justify-end gap-2">
+                                                {bill.status === 'pending' && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                                        onClick={() => {
+                                                            setPaymentItem(bill);
+                                                            setIsPaymentModalOpen(true);
+                                                        }}
+                                                    >
+                                                        <DollarSign className="h-4 w-4 mr-1" />
+                                                        Receber
+                                                    </Button>
+                                                )}
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(bill)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
@@ -187,6 +205,24 @@ export default function ContasReceber() {
                     }}
                     dataToEdit={editingItem}
                 />
+
+                {paymentItem && (
+                    <PaymentModal
+                        isOpen={isPaymentModalOpen}
+                        onClose={() => {
+                            setIsPaymentModalOpen(false);
+                            setPaymentItem(null);
+                        }}
+                        accountingId={paymentItem.id}
+                        type="receivable"
+                        initialAmount={paymentItem.amount}
+                        description={`Recebimento: ${paymentItem.description}`}
+                        onSuccess={() => {
+                            // Refetch data
+                            window.location.reload();
+                        }}
+                    />
+                )}
             </div>
         </AppLayout>
     );
