@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
-interface Company {
+export interface Company {
   id: string;
   cnpj: string | null;
   razao_social: string;

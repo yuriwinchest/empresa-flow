@@ -52,3 +52,18 @@ export interface AccountsReceivable {
         name: string;
     };
 }
+
+export interface Transaction {
+    id: string;
+    company_id: string;
+    bank_account_id: string;
+    category_id: string;
+    type: 'credit' | 'debit';
+    amount: number;
+    date: string;
+    description: string;
+    status?: string;
+    created_at: string;
+    bank_account?: { name: string };
+    category?: { name: string };
+}

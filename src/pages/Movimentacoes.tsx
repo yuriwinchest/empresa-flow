@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Transaction } from "@/types/finance";
 
 export default function Movimentacoes() {
     const { selectedCompany } = useCompany();
@@ -53,8 +54,8 @@ export default function Movimentacoes() {
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
 
-            let query = supabase
-                .from("transactions")
+            let query = (supabase
+                .from("transactions") as any)
                 .select(`
             *,
             bank_account:bank_accounts(name),
@@ -72,7 +73,7 @@ export default function Movimentacoes() {
 
             const { data, error } = await query;
             if (error) throw error;
-            return data;
+            return data as unknown as Transaction[];
         },
         enabled: !!selectedCompany?.id,
     });
