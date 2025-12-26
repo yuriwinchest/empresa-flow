@@ -1,0 +1,39 @@
+import { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
+import { AppHeader } from "./AppHeader";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface AppLayoutProps {
+  children: ReactNode;
+  title?: string;
+}
+
+export function AppLayout({ children, title }: AppLayoutProps) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse text-muted-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <AppHeader title={title} />
+        <main className="flex-1 p-6 overflow-auto">
+          {children}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
