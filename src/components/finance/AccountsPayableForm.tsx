@@ -58,12 +58,12 @@ interface AccountsPayableFormProps {
 export function AccountsPayableForm({ onSuccess, initialData }: AccountsPayableFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const queryClient = useQueryClient();
 
     // Load suppliers and categories
     const { data: suppliers } = useQuery({
-        queryKey: ["suppliers", selectedCompany?.id, activeClient],
+        queryKey: ["suppliers", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient.from("suppliers").select("id, razao_social").eq("company_id", selectedCompany!.id);
             return data || [];
@@ -72,7 +72,7 @@ export function AccountsPayableForm({ onSuccess, initialData }: AccountsPayableF
     });
 
     const { data: categories } = useQuery({
-        queryKey: ["categories", selectedCompany?.id, activeClient],
+        queryKey: ["categories", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient.from("categories").select("id, name").eq("company_id", selectedCompany!.id);
             return data || [];

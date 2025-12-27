@@ -25,7 +25,7 @@ import { PaymentModal } from "@/components/transactions/PaymentModal";
 
 export default function ContasPagar() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsPayable | undefined>(undefined);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -34,7 +34,7 @@ export default function ContasPagar() {
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
     const { data: bills, isLoading } = useQuery({
-        queryKey: ["accounts_payable", selectedCompany?.id, activeClient],
+        queryKey: ["accounts_payable", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
             const { data, error } = await activeClient

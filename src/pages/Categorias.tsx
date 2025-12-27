@@ -21,13 +21,13 @@ import { Badge } from "@/components/ui/badge";
 
 export default function Categorias() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     const { data: categories, isLoading } = useQuery({
-        queryKey: ["categories", selectedCompany?.id, activeClient],
+        queryKey: ["categories", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
             const { data, error } = await activeClient

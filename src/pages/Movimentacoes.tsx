@@ -28,7 +28,7 @@ import { Transaction } from "@/types/finance";
 
 export default function Movimentacoes() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAccount, setSelectedAccount] = useState<string>("all");
     const [dateRange, setDateRange] = useState({
@@ -38,7 +38,7 @@ export default function Movimentacoes() {
 
     // Fetch Bank Accounts for filter
     const { data: accounts } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id, activeClient],
+        queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient
                 .from("bank_accounts")
@@ -51,7 +51,7 @@ export default function Movimentacoes() {
 
     // Fetch Transactions
     const { data: transactions, isLoading } = useQuery({
-        queryKey: ["transactions", selectedCompany?.id, selectedAccount, dateRange, activeClient],
+        queryKey: ["transactions", selectedCompany?.id, selectedAccount, dateRange, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
 

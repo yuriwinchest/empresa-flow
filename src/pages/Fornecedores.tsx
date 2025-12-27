@@ -21,14 +21,14 @@ import { useSearchParams } from "react-router-dom";
 
 export default function Fornecedores() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: suppliers, isLoading } = useQuery({
-        queryKey: ["suppliers", selectedCompany?.id, activeClient],
+        queryKey: ["suppliers", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
             const { data, error } = await activeClient

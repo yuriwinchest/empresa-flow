@@ -62,12 +62,12 @@ export function PaymentModal({
 }: PaymentModalProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Fetch Bank Accounts
     const { data: bankAccounts } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id, activeClient],
+        queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient
                 .from("bank_accounts")

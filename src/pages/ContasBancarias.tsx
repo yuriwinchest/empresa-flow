@@ -21,13 +21,13 @@ import { Badge } from "@/components/ui/badge";
 
 export default function ContasBancarias() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     const { data: accounts, isLoading } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id, activeClient],
+        queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
             const { data, error } = await activeClient

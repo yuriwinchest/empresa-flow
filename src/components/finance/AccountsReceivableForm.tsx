@@ -57,12 +57,12 @@ interface AccountsReceivableFormProps {
 export function AccountsReceivableForm({ onSuccess, initialData }: AccountsReceivableFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const queryClient = useQueryClient();
 
     // Load clients and categories
     const { data: clients } = useQuery({
-        queryKey: ["clients", selectedCompany?.id, activeClient],
+        queryKey: ["clients", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient.from("clients").select("id, razao_social").eq("company_id", selectedCompany!.id);
             return data || [];
@@ -71,7 +71,7 @@ export function AccountsReceivableForm({ onSuccess, initialData }: AccountsRecei
     });
 
     const { data: categories } = useQuery({
-        queryKey: ["categories", selectedCompany?.id, activeClient],
+        queryKey: ["categories", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             const { data } = await activeClient.from("categories").select("id, name").eq("company_id", selectedCompany!.id);
             return data || [];

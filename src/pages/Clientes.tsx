@@ -22,7 +22,7 @@ import { useSearchParams } from "react-router-dom";
 
 export default function Clientes() {
     const { selectedCompany } = useCompany();
-    const { activeClient } = useAuth();
+    const { activeClient, isUsingSecondary } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +30,7 @@ export default function Clientes() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: clients, isLoading, refetch } = useQuery({
-        queryKey: ["clients", selectedCompany?.id, activeClient],
+        queryKey: ["clients", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
             const { data, error } = await activeClient
