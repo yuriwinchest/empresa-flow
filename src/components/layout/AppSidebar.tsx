@@ -12,6 +12,7 @@ import {
   ArrowUpCircle,
   Settings,
   LogOut,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
@@ -141,6 +142,14 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/importacao-omie")}>
+              <Link to="/importacao-omie">
+                <Upload />
+                <span>Importar Omie</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/configuracoes")}>
               <Link to="/configuracoes">
