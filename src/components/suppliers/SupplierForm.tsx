@@ -141,10 +141,12 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
         }
 
         try {
+            const { cep, ...rest } = values;
             const supplierData = {
-                ...values,
+                ...rest,
+                razao_social: values.razao_social,
                 company_id: selectedCompany.id,
-                endereco_cep: values.cep,
+                endereco_cep: cep || "",
             };
 
             let error;
@@ -157,7 +159,7 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
             } else {
                 const { error: insertError } = await activeClient
                     .from("suppliers")
-                    .insert(supplierData);
+                    .insert([supplierData]);
                 error = insertError;
             }
 

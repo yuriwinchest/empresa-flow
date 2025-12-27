@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Phone, Mail, Globe, Landmark, FileText, Settings, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
+
 const clientFormSchema = z.object({
     tipo_pessoa: z.enum(["PF", "PJ"]),
     razao_social: z.string().min(1, "Razão social é obrigatória"),
@@ -141,10 +142,12 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
         }
 
         try {
+            const { cep, ...rest } = values;
             const clientData = {
-                ...values,
+                ...rest,
+                razao_social: values.razao_social,
                 company_id: selectedCompany.id,
-                endereco_cep: values.cep,
+                endereco_cep: cep || "",
             };
 
             let error;
@@ -157,7 +160,7 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
             } else {
                 const { error: insertError } = await activeClient
                     .from("clients")
-                    .insert(clientData);
+                    .insert([clientData]);
                 error = insertError;
             }
 
