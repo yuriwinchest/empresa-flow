@@ -1,1 +1,4 @@
 project_id = "ktddsxohdynmamilucop"
+
+[functions.import-omie-data]
+verify_jwt = false
