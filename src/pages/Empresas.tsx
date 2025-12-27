@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -23,27 +21,20 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
 import { Plus, Pencil, Building2 } from "lucide-react";
-
-interface Company {
-    id: string;
-    razao_social: string;
-    nome_fantasia: string | null;
-    cnpj: string | null;
-    email: string | null;
-    telefone: string | null;
-    endereco_cidade: string | null;
-    endereco_estado: string | null;
-    is_active: boolean;
-}
+import { useCompanies } from "@/hooks/useCompanies";
+import { Company, CompanyFormData } from "@/types/company";
 
 export default function Empresas() {
     const { user } = useAuth();
-    const queryClient = useQueryClient();
+    const { companies, isLoading, createCompany, updateCompany } = useCompanies(user?.id);
+
+    // UI State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-    const [formData, setFormData] = useState({
+
+    // Form State
+    const [formData, setFormData] = useState<CompanyFormData>({
         razao_social: "",
         nome_fantasia: "",
         cnpj: "",
@@ -55,52 +46,6 @@ export default function Empresas() {
         endereco_bairro: "",
         endereco_cidade: "",
         endereco_estado: "",
-    });
-
-    const { data: companies, isLoading } = useQuery({
-        queryKey: ["companies"],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from("companies")
-                .select("*")
-                .order("razao_social");
-            if (error) throw error;
-            return data as Company[];
-        },
-        enabled: !!user,
-    });
-
-    const createMutation = useMutation({
-        mutationFn: async (data: typeof formData) => {
-            const { error } = await supabase.from("companies").insert([data]);
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["companies"] });
-            toast.success("Empresa criada com sucesso!");
-            resetForm();
-        },
-        onError: () => {
-            toast.error("Erro ao criar empresa");
-        },
-    });
-
-    const updateMutation = useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-            const { error } = await supabase
-                .from("companies")
-                .update(data)
-                .eq("id", id);
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["companies"] });
-            toast.success("Empresa atualizada com sucesso!");
-            resetForm();
-        },
-        onError: () => {
-            toast.error("Erro ao atualizar empresa");
-        },
     });
 
     const resetForm = () => {
@@ -124,27 +69,35 @@ export default function Empresas() {
     const handleEdit = (company: Company) => {
         setEditingCompany(company);
         setFormData({
-            razao_social: company.razao_social || "",
+            razao_social: company.razao_social,
             nome_fantasia: company.nome_fantasia || "",
             cnpj: company.cnpj || "",
             email: company.email || "",
             telefone: company.telefone || "",
-            endereco_cep: "",
-            endereco_logradouro: "",
-            endereco_numero: "",
-            endereco_bairro: "",
+            endereco_cep: company.endereco_cep || "",
+            endereco_logradouro: company.endereco_logradouro || "",
+            endereco_numero: company.endereco_numero || "",
+            endereco_bairro: company.endereco_bairro || "",
             endereco_cidade: company.endereco_cidade || "",
             endereco_estado: company.endereco_estado || "",
         });
         setIsDialogOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingCompany) {
-            updateMutation.mutate({ id: editingCompany.id, data: formData });
-        } else {
-            createMutation.mutate(formData);
+        try {
+            if (editingCompany) {
+                await updateCompany.mutateAsync({ id: editingCompany.id, data: formData });
+            } else {
+                await createCompany.mutateAsync(formData);
+            }
+            // Reset is handled by mutation onSuccess in the hook if desired, 
+            // but here we can close dialog immediately or wait.
+            // The hook toast indicates success.
+            resetForm();
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -165,7 +118,7 @@ export default function Empresas() {
                                 Nova Empresa
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>
                                     {editingCompany ? "Editar Empresa" : "Nova Empresa"}
@@ -188,7 +141,7 @@ export default function Empresas() {
                                         <Label htmlFor="nome_fantasia">Nome Fantasia</Label>
                                         <Input
                                             id="nome_fantasia"
-                                            value={formData.nome_fantasia}
+                                            value={formData.nome_fantasia || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, nome_fantasia: e.target.value })
                                             }
@@ -198,7 +151,7 @@ export default function Empresas() {
                                         <Label htmlFor="cnpj">CNPJ</Label>
                                         <Input
                                             id="cnpj"
-                                            value={formData.cnpj}
+                                            value={formData.cnpj || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, cnpj: e.target.value })
                                             }
@@ -209,7 +162,7 @@ export default function Empresas() {
                                         <Input
                                             id="email"
                                             type="email"
-                                            value={formData.email}
+                                            value={formData.email || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, email: e.target.value })
                                             }
@@ -219,7 +172,7 @@ export default function Empresas() {
                                         <Label htmlFor="telefone">Telefone</Label>
                                         <Input
                                             id="telefone"
-                                            value={formData.telefone}
+                                            value={formData.telefone || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, telefone: e.target.value })
                                             }
@@ -229,7 +182,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_cep">CEP</Label>
                                         <Input
                                             id="endereco_cep"
-                                            value={formData.endereco_cep}
+                                            value={formData.endereco_cep || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, endereco_cep: e.target.value })
                                             }
@@ -239,7 +192,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_logradouro">Logradouro</Label>
                                         <Input
                                             id="endereco_logradouro"
-                                            value={formData.endereco_logradouro}
+                                            value={formData.endereco_logradouro || ""}
                                             onChange={(e) =>
                                                 setFormData({
                                                     ...formData,
@@ -252,7 +205,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_numero">Número</Label>
                                         <Input
                                             id="endereco_numero"
-                                            value={formData.endereco_numero}
+                                            value={formData.endereco_numero || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, endereco_numero: e.target.value })
                                             }
@@ -262,7 +215,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_bairro">Bairro</Label>
                                         <Input
                                             id="endereco_bairro"
-                                            value={formData.endereco_bairro}
+                                            value={formData.endereco_bairro || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, endereco_bairro: e.target.value })
                                             }
@@ -272,7 +225,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_cidade">Cidade</Label>
                                         <Input
                                             id="endereco_cidade"
-                                            value={formData.endereco_cidade}
+                                            value={formData.endereco_cidade || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, endereco_cidade: e.target.value })
                                             }
@@ -282,7 +235,7 @@ export default function Empresas() {
                                         <Label htmlFor="endereco_estado">Estado</Label>
                                         <Input
                                             id="endereco_estado"
-                                            value={formData.endereco_estado}
+                                            value={formData.endereco_estado || ""}
                                             onChange={(e) =>
                                                 setFormData({ ...formData, endereco_estado: e.target.value })
                                             }
@@ -295,10 +248,11 @@ export default function Empresas() {
                                         type="button"
                                         variant="outline"
                                         onClick={() => setIsDialogOpen(false)}
+                                        disabled={createCompany.isPending || updateCompany.isPending}
                                     >
                                         Cancelar
                                     </Button>
-                                    <Button type="submit">
+                                    <Button type="submit" disabled={createCompany.isPending || updateCompany.isPending}>
                                         {editingCompany ? "Salvar" : "Criar"}
                                     </Button>
                                 </div>
