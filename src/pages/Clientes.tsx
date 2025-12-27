@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useSearchParams } from "react-router-dom";
+import { maskCNPJ, maskCPF, maskPhone } from "@/utils/masks";
 
 export default function Clientes() {
     const { selectedCompany } = useCompany();
@@ -124,11 +125,18 @@ export default function Clientes() {
                                         <TableRow key={client.id}>
                                             <TableCell className="font-medium">{client.razao_social}</TableCell>
                                             <TableCell>{client.nome_fantasia || "-"}</TableCell>
-                                            <TableCell>{client.cpf_cnpj || "-"}</TableCell>
+                                            <TableCell>
+                                                {client.cpf_cnpj
+                                                    ? (client.cpf_cnpj.length > 11 ? maskCNPJ(client.cpf_cnpj) : maskCPF(client.cpf_cnpj))
+                                                    : "-"
+                                                }
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col text-sm">
                                                     <span>{client.email}</span>
-                                                    <span className="text-muted-foreground">{client.celular || client.telefone}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {client.celular ? maskPhone(client.celular) : (client.telefone ? maskPhone(client.telefone) : "-")}
+                                                    </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">

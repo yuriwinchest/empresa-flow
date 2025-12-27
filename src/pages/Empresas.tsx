@@ -500,7 +500,7 @@ export default function Empresas() {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="font-mono text-[11px] bg-slate-50 text-slate-600 border-slate-200">
-                                                    {company.cnpj || "N/D"}
+                                                    {company.cnpj ? maskCNPJ(company.cnpj) : "N/D"}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>

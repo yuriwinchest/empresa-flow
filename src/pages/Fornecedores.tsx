@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useSearchParams } from "react-router-dom";
+import { maskCNPJ, maskCPF, maskPhone } from "@/utils/masks";
 
 export default function Fornecedores() {
     const { selectedCompany } = useCompany();
@@ -121,11 +122,18 @@ export default function Fornecedores() {
                                         <TableRow key={supplier.id}>
                                             <TableCell className="font-medium">{supplier.razao_social}</TableCell>
                                             <TableCell>{supplier.nome_fantasia || "-"}</TableCell>
-                                            <TableCell>{supplier.cpf_cnpj || "-"}</TableCell>
+                                            <TableCell>
+                                                {supplier.cpf_cnpj
+                                                    ? (supplier.cpf_cnpj.length > 11 ? maskCNPJ(supplier.cpf_cnpj) : maskCPF(supplier.cpf_cnpj))
+                                                    : "-"
+                                                }
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col text-sm">
                                                     <span>{supplier.email}</span>
-                                                    <span className="text-muted-foreground">{supplier.celular || supplier.telefone}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {supplier.celular ? maskPhone(supplier.celular) : (supplier.telefone ? maskPhone(supplier.telefone) : "-")}
+                                                    </span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">
