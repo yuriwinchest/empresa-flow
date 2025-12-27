@@ -373,6 +373,8 @@ export type Database = {
       }
       companies: {
         Row: {
+          celular: string | null
+          cnae: string | null
           cnpj: string | null
           created_at: string
           email: string | null
@@ -388,12 +390,17 @@ export type Database = {
           inscricao_municipal: string | null
           is_active: boolean
           logo_url: string | null
+          natureza_juridica: string | null
           nome_fantasia: string | null
           razao_social: string
+          regime_tributario: string | null
+          site: string | null
           telefone: string | null
           updated_at: string
         }
         Insert: {
+          celular?: string | null
+          cnae?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -409,12 +416,17 @@ export type Database = {
           inscricao_municipal?: string | null
           is_active?: boolean
           logo_url?: string | null
+          natureza_juridica?: string | null
           nome_fantasia?: string | null
           razao_social: string
+          regime_tributario?: string | null
+          site?: string | null
           telefone?: string | null
           updated_at?: string
         }
         Update: {
+          celular?: string | null
+          cnae?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -430,8 +442,11 @@ export type Database = {
           inscricao_municipal?: string | null
           is_active?: boolean
           logo_url?: string | null
+          natureza_juridica?: string | null
           nome_fantasia?: string | null
           razao_social?: string
+          regime_tributario?: string | null
+          site?: string | null
           telefone?: string | null
           updated_at?: string
         }
