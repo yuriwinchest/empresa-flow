@@ -1,32 +1,32 @@
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from "@/components/ui/sheet";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 import { ClientForm } from "./ClientForm";
 
 interface ClientSheetProps {
     isOpen: boolean;
     onClose: () => void;
-    clientToEdit?: any; // Replace with proper type
+    clientToEdit?: any;
 }
 
 export function ClientSheet({ isOpen, onClose, clientToEdit }: ClientSheetProps) {
     return (
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-[540px] overflow-y-auto">
-                <SheetHeader className="mb-6">
-                    <SheetTitle>{clientToEdit ? "Editar Cliente" : "Novo Cliente"}</SheetTitle>
-                    <SheetDescription>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="mb-4">
+                    <DialogTitle>{clientToEdit ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+                    <DialogDescription>
                         {clientToEdit
                             ? "Edite os dados do cliente abaixo."
-                            : "Preencha os dados para cadastrar um novo cliente."}
-                    </SheetDescription>
-                </SheetHeader>
+                            : "Preencha os dados do formulário para cadastrar um novo cliente."}
+                    </DialogDescription>
+                </DialogHeader>
                 <ClientForm onSuccess={onClose} initialData={clientToEdit} />
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }

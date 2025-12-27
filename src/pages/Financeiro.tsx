@@ -31,9 +31,11 @@ export default function Financeiro() {
             title: "Clientes e Fornecedores",
             type: "action",
             items: [
-                { label: "Incluir", icon: Plus, href: "/clientes/novo", action: true },
+                { label: "Incluir Cliente", icon: Plus, href: "/clientes?new=true", action: true },
                 { label: "Importar Planilha", icon: FileSpreadsheet, href: "/clientes/importar" },
-                { label: "Exibir todos", icon: List, href: "/clientes" },
+                { label: "Exibir Clientes", icon: List, href: "/clientes" },
+                { label: "Incluir Fornecedor", icon: Plus, href: "/fornecedores?new=true", action: true },
+                { label: "Exibir Fornecedores", icon: List, href: "/fornecedores" },
             ]
         },
         {

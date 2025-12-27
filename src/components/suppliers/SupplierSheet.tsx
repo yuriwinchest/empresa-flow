@@ -1,10 +1,10 @@
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from "@/components/ui/sheet";
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/components/ui/dialog";
 import { SupplierForm } from "./SupplierForm";
 
 interface SupplierSheetProps {
@@ -15,18 +15,18 @@ interface SupplierSheetProps {
 
 export function SupplierSheet({ isOpen, onClose, supplierToEdit }: SupplierSheetProps) {
     return (
-        <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-[540px] overflow-y-auto">
-                <SheetHeader className="mb-6">
-                    <SheetTitle>{supplierToEdit ? "Editar Fornecedor" : "Novo Fornecedor"}</SheetTitle>
-                    <SheetDescription>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="mb-4">
+                    <DialogTitle>{supplierToEdit ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
+                    <DialogDescription>
                         {supplierToEdit
                             ? "Edite os dados do fornecedor abaixo."
-                            : "Preencha os dados para cadastrar um novo fornecedor."}
-                    </SheetDescription>
-                </SheetHeader>
+                            : "Preencha os dados do formulário para cadastrar um novo fornecedor."}
+                    </DialogDescription>
+                </DialogHeader>
                 <SupplierForm onSuccess={onClose} initialData={supplierToEdit} />
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }

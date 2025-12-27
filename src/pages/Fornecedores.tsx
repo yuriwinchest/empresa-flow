@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Pencil } from "lucide-react";
@@ -16,12 +16,14 @@ import { SupplierSheet } from "@/components/suppliers/SupplierSheet";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
+import { useSearchParams } from "react-router-dom";
 
 export default function Fornecedores() {
     const { selectedCompany } = useCompany();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: suppliers, isLoading } = useQuery({
         queryKey: ["suppliers", selectedCompany?.id],
@@ -38,6 +40,15 @@ export default function Fornecedores() {
         },
         enabled: !!selectedCompany?.id,
     });
+
+    useEffect(() => {
+        if (searchParams.get("new") === "true") {
+            handleNew();
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("new");
+            setSearchParams(newParams);
+        }
+    }, [searchParams, setSearchParams]);
 
     const handleEdit = (supplier: any) => {
         setEditingSupplier(supplier);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useSearchParams } from "react-router-dom";
 
 export default function Clientes() {
     const { selectedCompany } = useCompany();
@@ -24,6 +25,7 @@ export default function Clientes() {
     const [editingClient, setEditingClient] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const { toast } = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: clients, isLoading, refetch } = useQuery({
         queryKey: ["clients", selectedCompany?.id],
@@ -40,6 +42,16 @@ export default function Clientes() {
         },
         enabled: !!selectedCompany?.id,
     });
+
+    useEffect(() => {
+        if (searchParams.get("new") === "true") {
+            handleNew();
+            // Clear the param without refreshing
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("new");
+            setSearchParams(newParams);
+        }
+    }, [searchParams, setSearchParams]);
 
     const handleEdit = (client: any) => {
         setEditingClient(client);
