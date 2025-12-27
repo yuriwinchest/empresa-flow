@@ -20,6 +20,9 @@ import Conciliacao from "./pages/Conciliacao";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import ImportacaoOmie from "./pages/ImportacaoOmie";
+import CRM from "./pages/CRM";
+import ProdutosDepartamentos from "./pages/ProdutosDepartamentos";
+import Recibos from "./pages/Recibos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +52,9 @@ const App = () => (
               <Route path="/conciliacao" element={<Conciliacao />} />
               <Route path="/relatorios" element={<Relatorios />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/crm" element={<CRM />} />
+              <Route path="/operacional" element={<ProdutosDepartamentos />} />
+              <Route path="/recibos" element={<Recibos />} />
               <Route path="/importacao-omie" element={<ImportacaoOmie />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

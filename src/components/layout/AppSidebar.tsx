@@ -13,6 +13,9 @@ import {
   Settings,
   LogOut,
   Upload,
+  UserCheck,
+  Package,
+  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,7 +43,16 @@ const cadastroItems = [
 const financeiroItems = [
   { title: "Contas a Pagar", icon: ArrowDownCircle, url: "/contas-pagar" },
   { title: "Contas a Receber", icon: ArrowUpCircle, url: "/contas-receber" },
+  { title: "Recibos", icon: FileText, url: "/recibos" },
   { title: "Conciliação", icon: CreditCard, url: "/conciliacao" },
+];
+
+const crmItems = [
+  { title: "CRM", icon: Target, url: "/crm" },
+];
+
+const operacionalItems = [
+  { title: "Operacional", icon: Package, url: "/operacional" },
 ];
 
 const relatoriosItems = [
@@ -108,6 +120,42 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {financeiroItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Vendas & CRM</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {crmItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Operação</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {operacionalItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <Link to={item.url}>
