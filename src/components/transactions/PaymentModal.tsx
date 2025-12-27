@@ -92,26 +92,25 @@ export function PaymentModal({
             const rpcName = type === "payable" ? "process_payment" : "process_receipt";
             const paramIdName = type === "payable" ? "p_account_id" : "p_account_id"; // Fixed param name to match SQL function check
 
-            const { error } = await supabase.rpc(rpcName, {
-                p_account_id: accountingId,
-                p_bank_account_id: values.bank_account_id,
-                p_amount: parseFloat(values.amount),
-                p_payment_date: values.date, // For payable
-                p_receive_date: values.date, // For receivable, map correctly in rpc call if needed or adjust logic below
-            } as any);
+            let rpcError;
 
-            // Note: supabase.rpc takes an object where keys match the function arguments.
-            // My SQL functions use 'p_payment_date' for payable and 'p_receive_date' for receivable.
-            // I need to construct the payload dynamically or carefully.
-
-            const rpcParams = {
-                p_account_id: accountingId,
-                p_bank_account_id: values.bank_account_id,
-                p_amount: parseFloat(values.amount),
-                [type === 'payable' ? 'p_payment_date' : 'p_receive_date']: values.date
-            };
-
-            const { error: rpcError } = await supabase.rpc(rpcName, rpcParams);
+            if (type === 'payable') {
+                const { error } = await supabase.rpc('process_payment', {
+                    p_account_id: accountingId,
+                    p_bank_account_id: values.bank_account_id,
+                    p_amount: parseFloat(values.amount),
+                    p_payment_date: values.date,
+                });
+                rpcError = error;
+            } else {
+                const { error } = await supabase.rpc('process_receipt', {
+                    p_account_id: accountingId,
+                    p_bank_account_id: values.bank_account_id,
+                    p_amount: parseFloat(values.amount),
+                    p_receive_date: values.date,
+                });
+                rpcError = error;
+            }
 
             if (rpcError) throw rpcError;
 
