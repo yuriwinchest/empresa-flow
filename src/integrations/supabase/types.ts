@@ -433,7 +433,14 @@ export type Database = {
           celular: string | null
           cnae: string | null
           cnpj: string | null
+          contato_nome: string | null
           created_at: string
+          dados_bancarios_agencia: string | null
+          dados_bancarios_banco: string | null
+          dados_bancarios_conta: string | null
+          dados_bancarios_pix: string | null
+          dados_bancarios_titular_cpf_cnpj: string | null
+          dados_bancarios_titular_nome: string | null
           email: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -459,7 +466,14 @@ export type Database = {
           celular?: string | null
           cnae?: string | null
           cnpj?: string | null
+          contato_nome?: string | null
           created_at?: string
+          dados_bancarios_agencia?: string | null
+          dados_bancarios_banco?: string | null
+          dados_bancarios_conta?: string | null
+          dados_bancarios_pix?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -485,7 +499,14 @@ export type Database = {
           celular?: string | null
           cnae?: string | null
           cnpj?: string | null
+          contato_nome?: string | null
           created_at?: string
+          dados_bancarios_agencia?: string | null
+          dados_bancarios_banco?: string | null
+          dados_bancarios_conta?: string | null
+          dados_bancarios_pix?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
