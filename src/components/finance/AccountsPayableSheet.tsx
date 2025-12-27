@@ -17,7 +17,7 @@ interface AccountsPayableSheetProps {
 export function AccountsPayableSheet({ isOpen, onClose, dataToEdit }: AccountsPayableSheetProps) {
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-[540px] overflow-y-auto">
+            <SheetContent className="sm:max-w-[800px] overflow-y-auto">
                 <SheetHeader className="mb-6">
                     <SheetTitle>{dataToEdit ? "Editar Conta a Pagar" : "Nova Conta a Pagar"}</SheetTitle>
                     <SheetDescription>

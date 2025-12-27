@@ -16,7 +16,7 @@ interface BankAccountSheetProps {
 export function BankAccountSheet({ isOpen, onClose, dataToEdit }: BankAccountSheetProps) {
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-[540px] overflow-y-auto">
+            <SheetContent className="sm:max-w-[600px] overflow-y-auto">
                 <SheetHeader className="mb-6">
                     <SheetTitle>{dataToEdit ? "Editar Conta Bancária" : "Nova Conta Bancária"}</SheetTitle>
                     <SheetDescription>

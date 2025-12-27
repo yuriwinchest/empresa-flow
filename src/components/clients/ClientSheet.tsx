@@ -16,7 +16,7 @@ interface ClientSheetProps {
 export function ClientSheet({ isOpen, onClose, clientToEdit }: ClientSheetProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="mb-4">
                     <DialogTitle>{clientToEdit ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
                     <DialogDescription>

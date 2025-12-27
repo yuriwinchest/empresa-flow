@@ -16,7 +16,7 @@ interface SupplierSheetProps {
 export function SupplierSheet({ isOpen, onClose, supplierToEdit }: SupplierSheetProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="mb-4">
                     <DialogTitle>{supplierToEdit ? "Editar Fornecedor" : "Novo Fornecedor"}</DialogTitle>
                     <DialogDescription>

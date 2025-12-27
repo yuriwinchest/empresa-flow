@@ -16,7 +16,7 @@ interface CategorySheetProps {
 export function CategorySheet({ isOpen, onClose, dataToEdit }: CategorySheetProps) {
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
-            <SheetContent className="sm:max-w-[540px]">
+            <SheetContent className="sm:max-w-[600px]">
                 <SheetHeader className="mb-6">
                     <SheetTitle>{dataToEdit ? "Editar Categoria" : "Nova Categoria"}</SheetTitle>
                     <SheetDescription>
