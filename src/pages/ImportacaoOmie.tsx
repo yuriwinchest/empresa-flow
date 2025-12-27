@@ -24,7 +24,7 @@ export default function ImportacaoOmie() {
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ImportResults | null>(null);
-  
+
   const [files, setFiles] = useState({
     categories: null as File | null,
     clientsSuppliers: null as File | null,
@@ -46,6 +46,57 @@ export default function ImportacaoOmie() {
     });
   };
 
+  const parseCSV = (content: string, delimiter: string = ';'): string[][] => {
+    const lines: string[][] = [];
+    let currentLine: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const nextChar = content[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        currentLine.push(currentField.trim());
+        currentField = '';
+      } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !inQuotes) {
+        currentLine.push(currentField.trim());
+        if (currentLine.some(f => f.length > 0)) {
+          lines.push(currentLine);
+        }
+        currentLine = [];
+        currentField = '';
+        if (char === '\r') i++;
+      } else if (char !== '\r') {
+        currentField += char;
+      }
+    }
+
+    if (currentField.length > 0 || currentLine.length > 0) {
+      currentLine.push(currentField.trim());
+      if (currentLine.some(f => f.length > 0)) {
+        lines.push(currentLine);
+      }
+    }
+
+    return lines;
+  };
+
+  const chunkArray = <T,>(array: T[], size: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
   const handleImport = async () => {
     if (!selectedCompany?.id) {
       toast.error("Selecione uma empresa para importar os dados");
@@ -59,60 +110,120 @@ export default function ImportacaoOmie() {
     }
 
     setIsImporting(true);
-    setProgress(10);
-    setResults(null);
+    setProgress(0);
+    setResults({
+      categories: { imported: 0, errors: 0 },
+      clients: { imported: 0, errors: 0 },
+      suppliers: { imported: 0, errors: 0 },
+      accountsPayable: { imported: 0, errors: 0 },
+      accountsReceivable: { imported: 0, errors: 0 },
+    });
 
     try {
-      const payload: Record<string, string | undefined> = {
-        companyId: selectedCompany.id,
-      };
+      const companyId = selectedCompany.id;
 
-      setProgress(20);
-
+      // 1. Process Categories
       if (files.categories) {
-        payload.categories = await readFileContent(files.categories);
-      }
-      setProgress(35);
+        toast.info("Processando Categorias...");
+        const content = await readFileContent(files.categories);
+        const lines = parseCSV(content).slice(1); // Remove header
+        const chunks = chunkArray(lines, 100);
 
+        for (let i = 0; i < chunks.length; i++) {
+          const { data, error } = await supabaseTatica.functions.invoke('import-omie-data', {
+            body: { companyId, categories: chunks[i] }
+          });
+          if (error) throw error;
+          setResults(prev => ({
+            ...prev!,
+            categories: {
+              imported: prev!.categories.imported + (data.results.categories.imported || 0),
+              errors: prev!.categories.errors + (data.results.categories.errors || 0)
+            }
+          }));
+          setProgress(Math.round(((i + 1) / chunks.length) * 20));
+        }
+      }
+
+      // 2. Process Clients & Suppliers
       if (files.clientsSuppliers) {
-        payload.clientsSuppliers = await readFileContent(files.clientsSuppliers);
-      }
-      setProgress(50);
+        toast.info("Processando Clientes e Fornecedores...");
+        const content = await readFileContent(files.clientsSuppliers);
+        const lines = parseCSV(content).slice(1);
+        const chunks = chunkArray(lines, 50); // Smaller batch for CS as it does double insert
 
+        for (let i = 0; i < chunks.length; i++) {
+          const { data, error } = await supabaseTatica.functions.invoke('import-omie-data', {
+            body: { companyId, clientsSuppliers: chunks[i] }
+          });
+          if (error) throw error;
+          setResults(prev => ({
+            ...prev!,
+            clients: {
+              imported: prev!.clients.imported + (data.results.clients.imported || 0),
+              errors: prev!.clients.errors + (data.results.clients.errors || 0)
+            },
+            suppliers: {
+              imported: prev!.suppliers.imported + (data.results.suppliers.imported || 0),
+              errors: prev!.suppliers.errors + (data.results.suppliers.errors || 0)
+            }
+          }));
+          setProgress(20 + Math.round(((i + 1) / chunks.length) * 30));
+        }
+      }
+
+      // 3. Process Accounts Payable
       if (files.accountsPayable) {
-        payload.accountsPayable = await readFileContent(files.accountsPayable);
-      }
-      setProgress(65);
+        toast.info("Processando Contas a Pagar...");
+        const content = await readFileContent(files.accountsPayable);
+        const lines = parseCSV(content).slice(1);
+        const chunks = chunkArray(lines, 100);
 
+        for (let i = 0; i < chunks.length; i++) {
+          const { data, error } = await supabaseTatica.functions.invoke('import-omie-data', {
+            body: { companyId, accountsPayable: chunks[i] }
+          });
+          if (error) throw error;
+          setResults(prev => ({
+            ...prev!,
+            accountsPayable: {
+              imported: prev!.accountsPayable.imported + (data.results.accountsPayable.imported || 0),
+              errors: prev!.accountsPayable.errors + (data.results.accountsPayable.errors || 0)
+            }
+          }));
+          setProgress(50 + Math.round(((i + 1) / chunks.length) * 25));
+        }
+      }
+
+      // 4. Process Accounts Receivable
       if (files.accountsReceivable) {
-        payload.accountsReceivable = await readFileContent(files.accountsReceivable);
-      }
-      setProgress(80);
+        toast.info("Processando Contas a Receber...");
+        const content = await readFileContent(files.accountsReceivable);
+        const lines = parseCSV(content).slice(1);
+        const chunks = chunkArray(lines, 100);
 
-      console.log('Sending import request...');
-      
-      const { data, error } = await supabaseTatica.functions.invoke('import-omie-data', {
-        body: payload
-      });
+        for (let i = 0; i < chunks.length; i++) {
+          const { data, error } = await supabaseTatica.functions.invoke('import-omie-data', {
+            body: { companyId, accountsReceivable: chunks[i] }
+          });
+          if (error) throw error;
+          setResults(prev => ({
+            ...prev!,
+            accountsReceivable: {
+              imported: prev!.accountsReceivable.imported + (data.results.accountsReceivable.imported || 0),
+              errors: prev!.accountsReceivable.errors + (data.results.accountsReceivable.errors || 0)
+            }
+          }));
+          setProgress(75 + Math.round(((i + 1) / chunks.length) * 25));
+        }
+      }
 
       setProgress(100);
+      toast.success("Importação concluída com sucesso!");
 
-      if (error) {
-        console.error('Import error:', error);
-        toast.error(`Erro na importação: ${error.message}`);
-        return;
-      }
-
-      if (data?.success) {
-        setResults(data.results);
-        toast.success("Importação concluída com sucesso!");
-      } else {
-        toast.error(data?.error || "Erro desconhecido na importação");
-      }
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import exception:', error);
-      toast.error("Erro ao processar importação");
+      toast.error(`Erro ao processar importação: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsImporting(false);
     }
@@ -120,7 +231,7 @@ export default function ImportacaoOmie() {
 
   const renderResultBadge = (imported: number, errors: number) => {
     if (imported === 0 && errors === 0) return null;
-    
+
     return (
       <div className="flex items-center gap-2 text-sm">
         {imported > 0 && (
@@ -294,8 +405,8 @@ export default function ImportacaoOmie() {
         )}
 
         <div className="flex justify-end">
-          <Button 
-            onClick={handleImport} 
+          <Button
+            onClick={handleImport}
             disabled={isImporting || !selectedCompany}
             size="lg"
           >

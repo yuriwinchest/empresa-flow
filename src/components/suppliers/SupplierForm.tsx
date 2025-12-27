@@ -21,6 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { maskCNPJ, maskCPF, maskPhone, maskCEP, unmask } from "@/utils/masks";
 
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -125,10 +126,41 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
         if (initialData) {
             form.reset({
                 ...initialData,
-                cep: initialData.endereco_cep,
+                cep: maskCEP(initialData.endereco_cep || ""),
+                cpf_cnpj: initialData.tipo_pessoa === "PJ" ? maskCNPJ(initialData.cpf_cnpj || "") : maskCPF(initialData.cpf_cnpj || ""),
+                telefone: maskPhone(initialData.telefone || ""),
+                telefone_2: maskPhone(initialData.telefone_2 || ""),
+                celular: maskPhone(initialData.celular || ""),
+                fax: maskPhone(initialData.fax || ""),
+                dados_bancarios_titular_cpf_cnpj: initialData.dados_bancarios_titular_cpf_cnpj?.length > 11 ? maskCNPJ(initialData.dados_bancarios_titular_cpf_cnpj) : maskCPF(initialData.dados_bancarios_titular_cpf_cnpj || ""),
             });
         }
     }, [initialData, form]);
+
+    const handleCEPBlur = async () => {
+        const cep = form.getValues("cep");
+        const cleanCEP = unmask(cep || "");
+        if (cleanCEP.length === 8) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+                const data = await response.json();
+                if (data.erro) {
+                    toast({
+                        title: "Erro",
+                        description: "CEP não encontrado",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+                form.setValue("endereco_logradouro", data.logradouro);
+                form.setValue("endereco_bairro", data.bairro);
+                form.setValue("endereco_cidade", data.localidade);
+                form.setValue("endereco_estado", data.uf);
+            } catch (error) {
+                console.error("Erro ao buscar CEP:", error);
+            }
+        }
+    };
 
     const onSubmit = async (values: SupplierFormValues) => {
         if (!selectedCompany) {
@@ -146,7 +178,13 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                 ...rest,
                 razao_social: values.razao_social,
                 company_id: selectedCompany.id,
-                endereco_cep: cep || "",
+                endereco_cep: unmask(cep || ""),
+                cpf_cnpj: unmask(values.cpf_cnpj || ""),
+                telefone: unmask(values.telefone || ""),
+                telefone_2: unmask(values.telefone_2 || ""),
+                celular: unmask(values.celular || ""),
+                fax: unmask(values.fax || ""),
+                dados_bancarios_titular_cpf_cnpj: unmask(values.dados_bancarios_titular_cpf_cnpj || ""),
             };
 
             let error;
@@ -224,7 +262,15 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                             <button type="button" className="text-[10px] text-green-600 flex items-center gap-1"><Globe className="w-3 h-3" /> Pesquisar SEFAZ</button>
                                         </div>
                                         <FormControl>
-                                            <Input className="h-9 focus-visible:ring-green-600 border-slate-300" {...field} />
+                                            <Input
+                                                className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                                {...field}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const tipo = form.getValues("tipo_pessoa");
+                                                    field.onChange(tipo === "PJ" ? maskCNPJ(val) : maskCPF(val));
+                                                }}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -248,26 +294,25 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                             />
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2">
-                            <div className="col-span-1">
-                                <Label className="text-slate-600 text-xs font-bold uppercase">DDD</Label>
-                                <Input className="h-9 border-slate-300" placeholder="00" />
-                            </div>
-                            <div className="col-span-3">
-                                <FormField
-                                    control={form.control}
-                                    name="telefone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="text-slate-600 text-xs font-bold uppercase">Telefone</FormLabel>
-                                            <FormControl>
-                                                <Input className="h-9 focus-visible:ring-green-600 border-slate-300" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                        <div className="col-span-1">
+                            <FormField
+                                control={form.control}
+                                name="telefone"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-600 text-xs font-bold uppercase">Telefone</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                                {...field}
+                                                onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                                                maxLength={15}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
 
                         <div className="space-y-1">
@@ -407,7 +452,12 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                             <button type="button" className="text-[10px] text-green-600 flex items-center gap-1"><Search className="w-3 h-3" /> Pesquisar CEP</button>
                                         </div>
                                         <FormControl>
-                                            <Input className="h-9 border-slate-300 bg-blue-50/30" {...field} />
+                                            <Input
+                                                className="h-9 border-slate-300 bg-blue-50/30"
+                                                {...field}
+                                                onChange={(e) => field.onChange(maskCEP(e.target.value))}
+                                                onBlur={handleCEPBlur}
+                                            />
                                         </FormControl>
                                     </FormItem>
                                 )}
@@ -417,46 +467,57 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
 
                     <TabsContent value="contato" className="pt-4 space-y-4 animate-in fade-in duration-300">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="col-span-1">
-                                    <Label className="text-slate-500 text-[10px] font-bold uppercase">DDD</Label>
-                                    <Input className="h-9 border-slate-300" placeholder="00" />
-                                </div>
-                                <div className="col-span-3">
-                                    <FormField
-                                        control={form.control}
-                                        name="telefone_2"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Telefone 2</FormLabel>
-                                                <FormControl>
-                                                    <Input className="h-9 border-slate-300" {...field} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 gap-2">
-                                <div className="col-span-1">
-                                    <Label className="text-slate-500 text-[10px] font-bold uppercase">DDD</Label>
-                                    <Input className="h-9 border-slate-300" placeholder="00" />
-                                </div>
-                                <div className="col-span-3">
-                                    <FormField
-                                        control={form.control}
-                                        name="fax"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Fax</FormLabel>
-                                                <FormControl>
-                                                    <Input className="h-9 border-slate-300" {...field} />
-                                                </FormControl>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="telefone_2"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Telefone 2</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                className="h-9 border-slate-300"
+                                                {...field}
+                                                onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                                                maxLength={15}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="celular"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Celular / WhatsApp</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                className="h-9 border-slate-300"
+                                                {...field}
+                                                onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                                                maxLength={15}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="fax"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Fax</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                className="h-9 border-slate-300"
+                                                {...field}
+                                                onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                                                maxLength={15}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
                             <div className="md:col-span-2">
                                 <FormField
                                     control={form.control}
@@ -564,7 +625,16 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                         <FormItem>
                                             <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">CNPJ ou CPF do Titular</FormLabel>
                                             <FormControl>
-                                                <Input className="h-9 border-slate-300" placeholder="Opcional." {...field} />
+                                                <Input
+                                                    className="h-9 border-slate-300"
+                                                    placeholder="Opcional."
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        field.onChange(val.length > 14 ? maskCNPJ(val) : maskCPF(val));
+                                                    }}
+                                                    maxLength={18}
+                                                />
                                             </FormControl>
                                         </FormItem>
                                     )}

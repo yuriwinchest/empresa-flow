@@ -1,0 +1,1 @@
+DELETE FROM public.accounts_payable WHERE company_id = '7109ea16-1ec9-43ed-8779-043a17626083';

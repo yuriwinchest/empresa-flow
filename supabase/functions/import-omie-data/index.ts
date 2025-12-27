@@ -91,11 +91,11 @@ function parseCSV(content: string, delimiter: string = ';'): string[][] {
   let currentLine: string[] = [];
   let currentField = '';
   let inQuotes = false;
-  
+
   for (let i = 0; i < content.length; i++) {
     const char = content[i];
     const nextChar = content[i + 1];
-    
+
     if (char === '"') {
       if (inQuotes && nextChar === '"') {
         currentField += '"';
@@ -118,14 +118,14 @@ function parseCSV(content: string, delimiter: string = ';'): string[][] {
       currentField += char;
     }
   }
-  
+
   if (currentField.length > 0 || currentLine.length > 0) {
     currentLine.push(currentField.trim());
     if (currentLine.some(f => f.length > 0)) {
       lines.push(currentLine);
     }
   }
-  
+
   return lines;
 }
 
@@ -148,13 +148,26 @@ function mapStatus(situacao: string): 'pending' | 'paid' | 'cancelled' | 'overdu
 function getCategoryType(name: string): 'income' | 'expense' {
   const incomeKeywords = ['receita', 'crédito', 'débito stone', 'pix stone', 'dinheiro', 'devolução de compra', 'adiantamento de clientes', 'reembolso', 'empréstimos bancários', 'venda de ativos', 'transferência entre contas'];
   const lowerName = name.toLowerCase();
-  
+
   for (const keyword of incomeKeywords) {
     if (lowerName.includes(keyword.toLowerCase())) {
       return 'income';
     }
   }
   return 'expense';
+}
+
+function parseDate(value: string): string | null {
+  if (!value || value === '') return null;
+  // Handle DD/MM/YYYY format
+  const parts = value.split('/');
+  if (parts.length === 3) {
+    const day = parts[0].padStart(2, '0');
+    const month = parts[1].padStart(2, '0');
+    const year = parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  return value; // Assume it's already YYYY-MM-DD or other valid format
 }
 
 serve(async (req) => {
@@ -167,19 +180,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { 
+    const {
       companyId,
       companyData,
       categories,
       clientsSuppliers,
       accountsPayable,
-      accountsReceivable 
+      accountsReceivable
     } = await req.json();
 
     console.log('Starting import process...');
-    
+
     let targetCompanyId = companyId;
-    
+
     // Create company if companyData is provided
     if (companyData && !companyId) {
       console.log('Creating new company:', companyData.razao_social);
@@ -188,16 +201,16 @@ serve(async (req) => {
         .insert([companyData])
         .select()
         .single();
-        
+
       if (companyError) {
         console.error('Error creating company:', companyError);
         throw new Error(`Error creating company: ${companyError.message}`);
       }
-      
+
       targetCompanyId = newCompany.id;
       console.log('Company created with ID:', targetCompanyId);
     }
-    
+
     if (!targetCompanyId) {
       throw new Error('Company ID is required');
     }
@@ -210,44 +223,59 @@ serve(async (req) => {
       accountsReceivable: { imported: 0, errors: 0 },
     };
 
-    // Maps for lookups
-    const categoryMap = new Map<string, string>();
-    const clientMap = new Map<string, string>();
-    const supplierMap = new Map<string, string>();
+    // Pre-fetch lookups
+    console.log('Fetching existing data for lookups...');
+    const [existingCategories, existingClients, existingSuppliers] = await Promise.all([
+      supabase.from('categories').select('id, name').eq('company_id', targetCompanyId),
+      supabase.from('clients').select('id, razao_social').eq('company_id', targetCompanyId),
+      supabase.from('suppliers').select('id, razao_social').eq('company_id', targetCompanyId),
+    ]);
+
+    const categoryMap = new Map<string, string>(
+      existingCategories.data?.map(c => [c.name.toLowerCase(), c.id]) || []
+    );
+    const clientMap = new Map<string, string>(
+      existingClients.data?.map(c => [c.razao_social.toLowerCase(), c.id]) || []
+    );
+    const supplierMap = new Map<string, string>(
+      existingSuppliers.data?.map(s => [s.razao_social.toLowerCase(), s.id]) || []
+    );
 
     // 1. Import Categories
     if (categories) {
       console.log('Importing categories...');
-      const catLines = parseCSV(categories);
-      
-      // Skip header
-      for (let i = 1; i < catLines.length; i++) {
+      const catLines = typeof categories === 'string' ? parseCSV(categories) : categories;
+
+      // Skip header if it's string (raw CSV)
+      const startIndex = typeof categories === 'string' ? 1 : 0;
+
+      for (let i = startIndex; i < catLines.length; i++) {
         const line = catLines[i];
         if (line.length < 1) continue;
-        
+
         const name = line[0]?.trim();
         const description = line[1]?.trim() || null;
-        
+
         if (!name) continue;
-        
-        // Determine if it's a parent category (no leading spaces) or child
-        const isParent = !name.startsWith(' ');
+
         const cleanName = name.trim();
         const categoryType = getCategoryType(cleanName);
-        
+
         try {
           const { data: cat, error } = await supabase
             .from('categories')
-            .insert([{
+            .upsert({
               company_id: targetCompanyId,
               name: cleanName,
               description,
               type: categoryType,
               is_active: true
-            }])
+            }, {
+              onConflict: 'company_id, name'
+            })
             .select()
             .single();
-            
+
           if (error) {
             console.error('Error inserting category:', cleanName, error);
             results.categories.errors++;
@@ -260,23 +288,18 @@ serve(async (req) => {
           results.categories.errors++;
         }
       }
-      console.log(`Categories imported: ${results.categories.imported}, errors: ${results.categories.errors}`);
     }
 
     // 2. Import Clients and Suppliers
     if (clientsSuppliers) {
       console.log('Importing clients and suppliers...');
-      const csLines = parseCSV(clientsSuppliers);
-      
-      // Track unique entries by razao_social to avoid duplicates
-      const processedClients = new Set<string>();
-      const processedSuppliers = new Set<string>();
-      
-      // Skip header
-      for (let i = 1; i < csLines.length; i++) {
+      const csLines = typeof clientsSuppliers === 'string' ? parseCSV(clientsSuppliers) : clientsSuppliers;
+      const startIndex = typeof clientsSuppliers === 'string' ? 1 : 0;
+
+      for (let i = startIndex; i < csLines.length; i++) {
         const line = csLines[i];
         if (line.length < 3) continue;
-        
+
         const situacao = line[0]?.trim();
         const cpfCnpj = line[1]?.trim() || null;
         const razaoSocial = line[2]?.trim();
@@ -294,16 +317,15 @@ serve(async (req) => {
         const contaCorrente = line[14]?.trim() || null;
         const inscricaoEstadual = line[15]?.trim() || null;
         const inscricaoMunicipal = line[16]?.trim() || null;
-        
+
         if (!razaoSocial) continue;
-        
-        // Extract city from "Cidade (UF)" format
+
         const cidadeMatch = cidadeEstado.match(/^(.*?)\s*\([A-Z]{2}\)$/);
         const cidade = cidadeMatch ? cidadeMatch[1].trim() : cidadeEstado;
-        
+
         const isActive = situacao?.toLowerCase() !== 'inativo';
         const tipoPessoa = cpfCnpj && cpfCnpj.includes('/') ? 'PJ' : 'PF';
-        
+
         const baseData = {
           company_id: targetCompanyId,
           razao_social: razaoSocial,
@@ -325,70 +347,59 @@ serve(async (req) => {
           tipo_pessoa: tipoPessoa,
           is_active: isActive
         };
-        
-        const uniqueKey = razaoSocial.toLowerCase();
-        
-        // Import as both client and supplier (they're in the same file in Omie)
+
         // Client
-        if (!processedClients.has(uniqueKey)) {
-          processedClients.add(uniqueKey);
-          try {
-            const { data: client, error } = await supabase
-              .from('clients')
-              .insert([baseData])
-              .select()
-              .single();
-              
-            if (error) {
-              console.error('Error inserting client:', razaoSocial, error.message);
-              results.clients.errors++;
-            } else {
-              clientMap.set(razaoSocial.toLowerCase(), client.id);
-              results.clients.imported++;
-            }
-          } catch (e) {
-            console.error('Exception inserting client:', e);
+        try {
+          const { data: client, error } = await supabase
+            .from('clients')
+            .upsert(baseData, { onConflict: 'company_id, razao_social' })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error inserting client:', razaoSocial, error.message);
             results.clients.errors++;
+          } else {
+            clientMap.set(razaoSocial.toLowerCase(), client.id);
+            results.clients.imported++;
           }
+        } catch (e) {
+          console.error('Exception inserting client:', e);
+          results.clients.errors++;
         }
-        
+
         // Supplier
-        if (!processedSuppliers.has(uniqueKey)) {
-          processedSuppliers.add(uniqueKey);
-          try {
-            const { data: supplier, error } = await supabase
-              .from('suppliers')
-              .insert([baseData])
-              .select()
-              .single();
-              
-            if (error) {
-              console.error('Error inserting supplier:', razaoSocial, error.message);
-              results.suppliers.errors++;
-            } else {
-              supplierMap.set(razaoSocial.toLowerCase(), supplier.id);
-              results.suppliers.imported++;
-            }
-          } catch (e) {
-            console.error('Exception inserting supplier:', e);
+        try {
+          const { data: supplier, error } = await supabase
+            .from('suppliers')
+            .upsert(baseData, { onConflict: 'company_id, razao_social' })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error inserting supplier:', razaoSocial, error.message);
             results.suppliers.errors++;
+          } else {
+            supplierMap.set(razaoSocial.toLowerCase(), supplier.id);
+            results.suppliers.imported++;
           }
+        } catch (e) {
+          console.error('Exception inserting supplier:', e);
+          results.suppliers.errors++;
         }
       }
-      console.log(`Clients imported: ${results.clients.imported}, errors: ${results.clients.errors}`);
-      console.log(`Suppliers imported: ${results.suppliers.imported}, errors: ${results.suppliers.errors}`);
     }
 
     // 3. Import Accounts Payable
     if (accountsPayable) {
       console.log('Importing accounts payable...');
-      const apLines = parseCSV(accountsPayable);
-      
-      // Skip header
-      for (let i = 1; i < apLines.length; i++) {
+      const apLines = typeof accountsPayable === 'string' ? parseCSV(accountsPayable) : accountsPayable;
+      const startIndex = typeof accountsPayable === 'string' ? 1 : 0;
+
+      for (let i = startIndex; i < apLines.length; i++) {
         const line = apLines[i];
         if (line.length < 10) continue;
-        
+
         const situacao = line[0]?.trim();
         const tipoDocumento = line[1]?.trim();
         const parcela = line[3]?.trim();
@@ -397,32 +408,42 @@ serve(async (req) => {
         const ultimoPagamento = line[7]?.trim();
         const valorConta = line[8]?.trim();
         const categoria = line[15]?.trim();
-        const contaCorrente = line[19]?.trim();
         const dataVencimento = line[20]?.trim();
         const observacao = line[23]?.trim();
-        
-        if (!previsaoPagamento && !dataVencimento) continue;
-        
-        const dueDate = dataVencimento || previsaoPagamento;
+
+        const dueDate = parseDate(dataVencimento || previsaoPagamento);
         const amount = parseNumber(valorConta);
-        
-        if (amount === 0) continue;
-        
-        // Find supplier ID
+
+        if (!dueDate || amount === 0) continue;
+
         const supplierId = nomeFornecedor ? supplierMap.get(nomeFornecedor.toLowerCase()) : null;
-        
-        // Find category ID
         const categoryId = categoria ? categoryMap.get(categoria.toLowerCase()) : null;
-        
         const status = mapStatus(situacao);
-        const paymentDate = status === 'paid' && ultimoPagamento ? ultimoPagamento : null;
-        
+        const paymentDate = status === 'paid' ? parseDate(ultimoPagamento) : null;
+
+        const description = `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeFornecedor || 'Sem fornecedor'}`.trim();
+
         try {
+          // Check for existing record to avoid exact duplicates
+          const { data: existing } = await supabase
+            .from('accounts_payable')
+            .select('id')
+            .eq('company_id', targetCompanyId)
+            .eq('description', description)
+            .eq('amount', amount)
+            .eq('due_date', dueDate)
+            .maybeSingle();
+
+          if (existing) {
+            results.accountsPayable.imported++; // Count as "processed"
+            continue;
+          }
+
           const { error } = await supabase
             .from('accounts_payable')
             .insert([{
               company_id: targetCompanyId,
-              description: `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeFornecedor || 'Sem fornecedor'}`.trim(),
+              description,
               amount,
               due_date: dueDate,
               payment_date: paymentDate,
@@ -432,7 +453,7 @@ serve(async (req) => {
               payment_method: tipoDocumento?.toLowerCase(),
               observations: observacao
             }]);
-            
+
           if (error) {
             console.error('Error inserting account payable:', error.message);
             results.accountsPayable.errors++;
@@ -444,19 +465,18 @@ serve(async (req) => {
           results.accountsPayable.errors++;
         }
       }
-      console.log(`Accounts payable imported: ${results.accountsPayable.imported}, errors: ${results.accountsPayable.errors}`);
     }
 
     // 4. Import Accounts Receivable
     if (accountsReceivable) {
       console.log('Importing accounts receivable...');
-      const arLines = parseCSV(accountsReceivable);
-      
-      // Skip header
-      for (let i = 1; i < arLines.length; i++) {
+      const arLines = typeof accountsReceivable === 'string' ? parseCSV(accountsReceivable) : accountsReceivable;
+      const startIndex = typeof accountsReceivable === 'string' ? 1 : 0;
+
+      for (let i = startIndex; i < arLines.length; i++) {
         const line = arLines[i];
         if (line.length < 10) continue;
-        
+
         const situacao = line[0]?.trim();
         const tipoDocumento = line[1]?.trim();
         const parcela = line[3]?.trim();
@@ -465,32 +485,42 @@ serve(async (req) => {
         const ultimoRecebimento = line[7]?.trim();
         const valorConta = line[8]?.trim();
         const categoria = line[15]?.trim();
-        const contaCorrente = line[19]?.trim();
         const dataVencimento = line[21]?.trim();
         const observacao = line[24]?.trim();
-        
-        if (!previsaoRecebimento && !dataVencimento) continue;
-        
-        const dueDate = dataVencimento || previsaoRecebimento;
+
+        const dueDate = parseDate(dataVencimento || previsaoRecebimento);
         const amount = parseNumber(valorConta);
-        
-        if (amount === 0) continue;
-        
-        // Find client ID
+
+        if (!dueDate || amount === 0) continue;
+
         const clientId = nomeCliente ? clientMap.get(nomeCliente.toLowerCase()) : null;
-        
-        // Find category ID
         const categoryId = categoria ? categoryMap.get(categoria.toLowerCase()) : null;
-        
         const status = mapStatus(situacao);
-        const receiveDate = status === 'paid' && ultimoRecebimento ? ultimoRecebimento : null;
-        
+        const receiveDate = status === 'paid' ? parseDate(ultimoRecebimento) : null;
+
+        const description = `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeCliente || 'Sem cliente'}`.trim();
+
         try {
+          // Check for existing record to avoid exact duplicates
+          const { data: existing } = await supabase
+            .from('accounts_receivable')
+            .select('id')
+            .eq('company_id', targetCompanyId)
+            .eq('description', description)
+            .eq('amount', amount)
+            .eq('due_date', dueDate)
+            .maybeSingle();
+
+          if (existing) {
+            results.accountsReceivable.imported++; // Count as "processed"
+            continue;
+          }
+
           const { error } = await supabase
             .from('accounts_receivable')
             .insert([{
               company_id: targetCompanyId,
-              description: `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeCliente || 'Sem cliente'}`.trim(),
+              description,
               amount,
               due_date: dueDate,
               receive_date: receiveDate,
@@ -500,7 +530,7 @@ serve(async (req) => {
               payment_method: tipoDocumento?.toLowerCase(),
               observations: observacao
             }]);
-            
+
           if (error) {
             console.error('Error inserting account receivable:', error.message);
             results.accountsReceivable.errors++;
@@ -512,16 +542,15 @@ serve(async (req) => {
           results.accountsReceivable.errors++;
         }
       }
-      console.log(`Accounts receivable imported: ${results.accountsReceivable.imported}, errors: ${results.accountsReceivable.errors}`);
     }
 
     console.log('Import completed!', results);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         companyId: targetCompanyId,
-        results 
+        results
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

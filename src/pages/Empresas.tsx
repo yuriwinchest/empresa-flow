@@ -24,6 +24,8 @@ import { Company, CompanyFormData } from "@/types/company";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { maskCNPJ, maskCPF, maskPhone, maskCEP, unmask } from "@/utils/masks";
+import { toast } from "sonner";
 
 export default function Empresas() {
     const { user } = useAuth();
@@ -104,18 +106,18 @@ export default function Empresas() {
         setFormData({
             razao_social: company.razao_social,
             nome_fantasia: company.nome_fantasia || "",
-            cnpj: company.cnpj || "",
+            cnpj: maskCNPJ(company.cnpj || ""),
             inscricao_estadual: company.inscricao_estadual || "",
             inscricao_municipal: company.inscricao_municipal || "",
             cnae: company.cnae || "",
             natureza_juridica: company.natureza_juridica || "",
             regime_tributario: company.regime_tributario || "",
             email: company.email || "",
-            telefone: company.telefone || "",
-            celular: company.celular || "",
+            telefone: maskPhone(company.telefone || ""),
+            celular: maskPhone(company.celular || ""),
             site: company.site || "",
             contato_nome: company.contato_nome || "",
-            endereco_cep: company.endereco_cep || "",
+            endereco_cep: maskCEP(company.endereco_cep || ""),
             endereco_logradouro: company.endereco_logradouro || "",
             endereco_numero: company.endereco_numero || "",
             endereco_complemento: company.endereco_complemento || "",
@@ -127,7 +129,9 @@ export default function Empresas() {
             dados_bancarios_agencia: company.dados_bancarios_agencia || "",
             dados_bancarios_conta: company.dados_bancarios_conta || "",
             dados_bancarios_pix: company.dados_bancarios_pix || "",
-            dados_bancarios_titular_cpf_cnpj: company.dados_bancarios_titular_cpf_cnpj || "",
+            dados_bancarios_titular_cpf_cnpj: company.dados_bancarios_titular_cpf_cnpj?.length > 11
+                ? maskCNPJ(company.dados_bancarios_titular_cpf_cnpj)
+                : maskCPF(company.dados_bancarios_titular_cpf_cnpj || ""),
             dados_bancarios_titular_nome: company.dados_bancarios_titular_nome || "",
         });
         setIsDialogOpen(true);
@@ -136,14 +140,48 @@ export default function Empresas() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // Unmask before saving
+            const dataToSave = {
+                ...formData,
+                cnpj: unmask(formData.cnpj || ""),
+                telefone: unmask(formData.telefone || ""),
+                celular: unmask(formData.celular || ""),
+                endereco_cep: unmask(formData.endereco_cep || ""),
+                dados_bancarios_titular_cpf_cnpj: unmask(formData.dados_bancarios_titular_cpf_cnpj || ""),
+            };
+
             if (editingCompany) {
-                await updateCompany.mutateAsync({ id: editingCompany.id, data: formData });
+                await updateCompany.mutateAsync({ id: editingCompany.id, data: dataToSave });
             } else {
-                await createCompany.mutateAsync(formData);
+                await createCompany.mutateAsync(dataToSave);
             }
             resetForm();
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const handleCEPBlur = async () => {
+        const cleanCEP = unmask(formData.endereco_cep || "");
+        if (cleanCEP.length === 8) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+                const data = await response.json();
+                if (data.erro) {
+                    toast.error("CEP não encontrado");
+                    return;
+                }
+                setFormData(prev => ({
+                    ...prev,
+                    endereco_logradouro: data.logradouro,
+                    endereco_bairro: data.bairro,
+                    endereco_cidade: data.localidade,
+                    endereco_estado: data.uf,
+                }));
+            } catch (error) {
+                toast.error("Erro ao buscar CEP");
+                console.error("Erro ao buscar CEP:", error);
+            }
         }
     };
 
@@ -198,8 +236,9 @@ export default function Empresas() {
                                         </div>
                                         <Input
                                             value={formData.cnpj || ""}
-                                            onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, cnpj: maskCNPJ(e.target.value) })}
                                             className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                            maxLength={18}
                                         />
                                     </div>
 
@@ -216,8 +255,9 @@ export default function Empresas() {
                                         <Label className="text-slate-600 text-[10px] font-bold uppercase tracking-wider">Fixo / Geral</Label>
                                         <Input
                                             value={formData.telefone || ""}
-                                            onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                                            onChange={(e) => setFormData({ ...formData, telefone: maskPhone(e.target.value) })}
                                             className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                            maxLength={15}
                                         />
                                     </div>
 
@@ -285,7 +325,13 @@ export default function Empresas() {
                                                     <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">CEP</Label>
                                                 </div>
                                                 <div className="relative">
-                                                    <Input value={formData.endereco_cep || ""} onChange={(e) => setFormData({ ...formData, endereco_cep: e.target.value })} className="h-9 border-slate-300 pr-8" />
+                                                    <Input
+                                                        value={formData.endereco_cep || ""}
+                                                        onChange={(e) => setFormData({ ...formData, endereco_cep: maskCEP(e.target.value) })}
+                                                        onBlur={handleCEPBlur}
+                                                        className="h-9 border-slate-300 pr-8"
+                                                        maxLength={9}
+                                                    />
                                                     <Search className="w-4 h-4 text-slate-400 absolute right-2 top-2.5" />
                                                 </div>
                                             </div>
@@ -328,7 +374,12 @@ export default function Empresas() {
                                             <div className="space-y-2">
                                                 <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Celular / WhatsApp</Label>
                                                 <div className="relative">
-                                                    <Input value={formData.celular || ""} onChange={(e) => setFormData({ ...formData, celular: e.target.value })} className="h-9 border-slate-300 pr-8" />
+                                                    <Input
+                                                        value={formData.celular || ""}
+                                                        onChange={(e) => setFormData({ ...formData, celular: maskPhone(e.target.value) })}
+                                                        className="h-9 border-slate-300 pr-8"
+                                                        maxLength={15}
+                                                    />
                                                     <Phone className="w-4 h-4 text-slate-400 absolute right-2 top-2.5" />
                                                 </div>
                                             </div>
@@ -359,6 +410,25 @@ export default function Empresas() {
                                             <div className="space-y-2">
                                                 <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Chave Pix</Label>
                                                 <Input value={formData.dados_bancarios_pix || ""} onChange={(e) => setFormData({ ...formData, dados_bancarios_pix: e.target.value })} className="h-9 border-slate-300" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Nome do Titular</Label>
+                                                <Input value={formData.dados_bancarios_titular_nome || ""} onChange={(e) => setFormData({ ...formData, dados_bancarios_titular_nome: e.target.value })} className="h-9 border-slate-300" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">CPF/CNPJ do Titular</Label>
+                                                <Input
+                                                    value={formData.dados_bancarios_titular_cpf_cnpj || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setFormData({
+                                                            ...formData,
+                                                            dados_bancarios_titular_cpf_cnpj: val.length > 14 ? maskCNPJ(val) : maskCPF(val)
+                                                        });
+                                                    }}
+                                                    className="h-9 border-slate-300"
+                                                    maxLength={18}
+                                                />
                                             </div>
                                         </div>
                                     </TabsContent>

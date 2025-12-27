@@ -1,0 +1,117 @@
+﻿Descrição;Observações
+"Receitas Diretas                                                      ";
+"   Transplantes                                                          ";"Esta categoria deve ser utilizada para receitas provenientes de serviços prestados a clientes. Não utilizar caso existam produtos envolvidos na prestação de serviços."
+"   Minoxidil                                                             ";"Esta categoria deve ser utilizada para receitas provenientes de revendas de produtos."
+"   Consulta médica                                                       ";
+"   Treinamentos/ palestras                                               ";
+"   Trio de vitaminas                                                     ";
+"   Dudasterida                                                           ";
+"   Vitamina D                                                            ";
+"   Protocolo 3 sessões                                                   ";
+"   Suplemento vitaminico                                                 ";
+"   Shampoo                                                               ";
+"   Minoxidil pant                                                        ";
+"   Soro terapia                                                          ";
+"   Fator de crescimento alopecia                                         ";
+"   Protocolo 6 sessões                                                   ";
+"   Protocolo 1 sessão                                                    ";
+"   Kit de tratamento                                                     ";
+"   Oléo de ozônio                                                        ";
+"   Kit pós operatório                                                    ";
+"Receitas Indiretas                                                    ";
+"   Crédito stone maquininha                                              ";"Esta categoria deve ser utilizada para receitas provenientes de recebimento de lucros gerados por empresas das quais a sua empresa é dona, ou seja, se a sua empresa é dona ou acionista de outra empresa, quando você receber um repasse que seja originado exclusivamente de lucros gerados após todas as despesas diretas e indiretas pagas, você deve classificar nesta categoria."
+"   Débito Stone maquininha                                               ";"Esta categoria deve ser utilizada para registrar uma receita de juros provenientes de uma determinada aplicação financeira ou ganho de capital. Por exemplo: juros obtidos por uma aplicação em ações na bolsa, ou por um fundo de investimento em seu banco."
+"   Pix Stone                                                             ";
+"   Dinheiro                                                              ";
+"Devoluções                                                            ";
+"   Devoluções de Compra de Mercadoria de Revenda                         ";"Utilize esta categoria para classificar uma entrada de dinheiro proveniente da devolução de uma compra que você fez de mercadoria para revender. Exemplo: você devolve uma determinada compra de produtos ao seu fornecedor e o mesmo lhe devolve o dinheiro que você pagou. Se a sua empresa é exclusivamente prestadora de serviços e não vende produtos, esta categoria pode ser inativada ou desabilitada."
+"   Devoluções de Compra de Serviços                                      ";"Utilize esta categoria para classificar uma entrada de dinheiro proveniente da devolução de uma compra que você fez de serviços. Exemplo: você devolve ou questiona/reclama uma determinada compra de um serviço tomado ao seu fornecedor e o mesmo lhe devolve o dinheiro que você pagou."
+"Outras Entradas                                                       ";
+"   Adiantamento de Clientes                                              ";"Utilize esta categoria para classificar entradas de dinheiro de clientes sobre produtos ou serviços que você ainda não emitiu nota fiscal."
+"   Reembolso de Despesas                                                 ";"Utilize esta categoria para classificar entradas de dinheiro advindas de reembolsos de despesas (comprovadas por relatórios de despesas) recebidas de clientes sobre gastos que ocorreram na sua prestação de serviço."
+"   Empréstimos Bancários                                                 ";"Utilize esta categoria para identificar lançamentos de entradas de dinheiro advindas de empréstimos que você contraiu."
+"   Venda de Ativos                                                       ";"Utilize esta categoria para identificar receitas de venda de ativos, tais como veículos, máquinas e equipamentos que não foram comprados para revender."
+"   Transferência entre contas                                            ";
+"Despesas Diretas                                                      ";
+"   Compras de Mercadorias para Revenda                                   ";"Utilize esta categoria para identificar todas as despesas com compras de produtos para serem revendidos."
+"   Frete                                                                 ";"Utilize esta categoria para lançamentos de despesas de fretes, como transportadoras, motoboy e correios."
+"   Compra de Serviços                                                    ";"Utilize esta categoria para identificar todas as despesas de pagamento de serviços tomados de fornecedores - pessoa jurídica."
+"Despesas de Vendas e Marketing                                        ";
+"   Comissões                                                             ";"Utilize esta categoria para identificar despesas de pagamento de comissões sobre vendas de seus vendedores internos ou externos. Outras bonificações ou participação em resultados não devem ser classificados aqui."
+"   Marketing                                                             ";"Classifique despesas com a divulgação de seus produtos e serviços a fim de gerar novas vendas."
+"   Despesas de Viagens                                                   ";"Despesas com viagens da equipe comercial, a fim de gerar novas vendas ou oportunidades de negócio. Despesas com viagens particulares ou para tratar de assuntos não devem ser classificadas aqui."
+"   Bonificações                                                          ";"Despesas com bonificações concedidas a clientes com a finalidade de gerar vendas ou promover seus produtos e serviços."
+"Despesas com Pessoal                                                  ";
+"   Salários                                                              ";"Despesas com salários do pessoal da empresa."
+"   Adiantamento                                                          ";"Despesas com adiantamento de salário do pessoal da empresa. Adiantamentos de férias não devem ser lançados aqui."
+"   Férias                                                                ";"Despesas com adiantamento de férias e férias do pessoal da empresa."
+"   Rescisões                                                             ";"Despesas com rescisão de pessoal da empresa."
+"   13º Salário                                                           ";"Despesas com o 13º salário do pessoal da empresa."
+"   INSS                                                                  ";"Pagamento de INSS sobre a folha de pagamento do pessoal da empresa."
+"   FGTS                                                                  ";"Pagamento de Fundo de Garantia dos empregados da empresa."
+"   IRRF                                                                  ";"Pagamento de Imposto de Renda sobre a folha de pagamento."
+"   Pensão Alimentícia                                                    ";"Despesas com pensão alimentícia ou judicial do pessoal da empresa."
+"   Assistência Médica                                                    ";"Despesas com benefício de assistência médica do pessoal da empresa."
+"   Vale Transporte                                                       ";"Despesas com benefício de vale transporte do pessoal da empresa."
+"   Despesas de alimentação/clinica                                       ";"Despesas com benefício de vale refeição do pessoal da empresa."
+"   Seguro de Vida                                                        ";"Despesas com benefício de seguro de vida do pessoal da empresa."
+"   Outros Benefícios                                                     ";"Utilize esta categoria para classificar as despesas com outros benefícios, não relacionados nas demais categorias, do pessoal da empresa."
+"Despesas Administrativas                                              ";
+"   Aluguel                                                               ";"Utilize esta categoria para identificar as despesas de aluguel da empresa. Despesas de reforma, condomínio e outras contas não devem ser lançadas aqui."
+"   Condomínio                                                            ";"Utilize esta categoria para as contas de condomínio dos imóveis alugados ou próprios da empresa."
+"   Água e Esgoto                                                         ";"Utilize esta categoria para classificar contas de água e esgoto da empresa."
+"   Energia Elétrica                                                      ";"Utilize esta categoria para classificar contas de energia elétrica da empresa."
+"   Telefonia                                                             ";"Utilize esta categoria para classificar contas de telefonia móvel e fixa da empresa."
+"   Material de Escritório                                                ";"Utilize esta categoria para pagamento de compras de material de escritório, limpeza e similares, desde que não sejam compras destinadas à revenda ou industrialização."
+"   Manutenção de Imobilizado                                             ";"Utilize esta categoria para pagamento de serviços de manutenção em suas máquinas, equipamentos e móveis, assim como reformas em imóveis de sua propriedade."
+"   Seguros                                                               ";"Utilize esta categoria para as despesas de seguros contratados de todos os tipos, exceto benefício de seguro de vida a empregados, que deve ser classificado em Benefícios."
+"   IPTU                                                                  ";"Utilize esta categoria para pagamento de guias de recolhimento de IPTU."
+"   Contabilidade                                                         ";"Utilize esta categoria para pagamentos de honorários e outras despesas relacionadas ao seu contador."
+"   Advogados                                                             ";"Utilize esta categoria para pagamentos de honorários e outras despesas relacionadas ao seu advogado."
+"   Segurança                                                             ";"Utilize esta categoria para classificar as despesas referentes a serviços terceirizados de Segurança."
+"   Limpeza                                                               ";"Utilize esta categoria para classificar as despesas referentes a serviços terceirizados de Limpeza."
+"   Consultoria                                                           ";
+"   Sistemas RD Station                                                   ";
+"   Prestadores de serviço                                                ";
+"   Sistema OMIE - Gestão financeira                                      ";
+"   Sistema AVEC                                                          ";
+"   Sistema Amplimed                                                      ";
+"Despesas Financeiras / Bancos                                         ";
+"   Juros sobre Empréstimos                                               ";"Utilize esta categoria para as despesas de juros cobrados por empréstimos que a empresa contratou."
+"   Multas                                                                ";"Utilize esta categoria para as despesas de multa."
+"   Pagamento de Empréstimos                                              ";"Utilize esta categoria para pagamento de empréstimos contratados ao credor. O valor do lançamento deve conter apenas o principal. O valor dos juros deve ser lançado na categoria de Juros sobre Empréstimos."
+"   Tarifas Bancárias                                                     ";"Utilize esta categoria para as despesas de tarifas bancárias diversas."
+"Impostos e Taxas                                                      ";
+"   ICMS                                                                  ";"Utilize esta categoria para as guias de recolhimento de ICMS a pagar. Caso a empresa seja exclusivamente prestadora de serviços e não possua inscrição estadual, você pode clicar na opção de ""não pretendo utilizar""."
+"   IPI                                                                   ";"Utilize esta categoria para as guias de recolhimento de IPI a pagar. Caso a empresa seja exclusivamente comercial ou prestadora de serviços e não uma indústria, você pode clicar na opção de ""não pretendo utilizar""."
+"   PIS                                                                   ";"Utilize esta categoria para classificar as guias de pagamento de PIS."
+"   COFINS                                                                ";"Utilize esta categoria para classificar as guias de pagamento de COFINS."
+"   IRPJ                                                                  ";"Utilize esta categoria para classificar as guias de pagamento de Imposto de Renda - Pessoa Jurídica."
+"   Contribuição Social                                                   ";"Utilize esta categoria para classificar as guias de pagamento de Contribuição Social."
+"   ISS                                                                   ";"Utilize esta categoria para classificar as guias de pagamento de ISS. Caso a empresa não seja prestadora de serviços e não possua inscrição municipal, você pode clicar na opção de ""não pretendo utilizar""."
+"   Simples Nacional (DAS)                                                ";
+"   DAE                                                                   ";
+"   DAM                                                                   ";
+"   DARF                                                                  ";
+"   IOF                                                                   ";"Utilize esta categoria para classificar o imposto incidido nas movimentações financeiras"
+"Investimento                                                          ";
+"   Máquinas e Equipamentos                                               ";"Utilize esta categoria para os pagamentos de compras de máquinas ou equipamentos em nome da empresa desde que não sejam destinados à revenda ou industrialização."
+"   Veículos                                                              ";"Utilize esta categoria para os pagamentos de compras de veículos em nome da empresa desde que não sejam destinados à revenda ou industrialização."
+"   Instalações                                                           ";"Utilize esta categoria para os pagamentos de investimentos com instalações."
+"   Equipamentos de Informática                                           ";"Utilize esta categoria para os pagamentos de compras de equipamentos de informática em nome da empresa desde que não sejam destinados à revenda ou industrialização."
+"   Móveis e Utensílios                                                   ";"Utilize esta categoria para os pagamentos de compras de móveis e utensílios em nome da empresa desde que não sejam destinados à revenda ou industrialização."
+"   Comunicação                                                           ";"Utilize esta categoria para os pagamentos de investimentos com comunicação."
+"   Cursos e treinamentos                                                 ";
+"Outras Despesas                                                       ";
+"   Adiantamento a Fornecedores                                           ";"Utilize esta categoria para classificar adiantamentos de dinheiro que sejam feitos a fornecedores por conta de serviços ou produtos a serem faturados futuramente."
+"Devoluções de Vendas                                                  ";
+"   Devoluções de Vendas de Mercadoria                                    ";
+"   Devoluções de Vendas de Serviços Prestados                            ";
+"Cartão de Crédito                                                     ";"Cartão de crédito"
+"   Cartão de crédito                                                     ";
+"HONORÁRIOS                                                            ";
+"   Honorários médicos                                                    ";
+"   Honorário equipe cirúrgica                                            ";
+"   Despesas pessoais                                                     ";
+"   Antecipação de lucro                                                  ";
+"   Transferência entre contas                                            ";

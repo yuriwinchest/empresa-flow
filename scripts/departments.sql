@@ -1,0 +1,2 @@
+INSERT INTO public.departments (company_id, name) VALUES ('7109ea16-1ec9-43ed-8779-043a17626083', 'Administrativo') ON CONFLICT (company_id, name) DO NOTHING;
+INSERT INTO public.departments (company_id, name) VALUES ('7109ea16-1ec9-43ed-8779-043a17626083', 'Comercial & Marketing') ON CONFLICT (company_id, name) DO NOTHING;
