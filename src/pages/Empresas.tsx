@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useCompany } from "@/contexts/CompanyContext";
+import { useCompany, Company } from "@/contexts/CompanyContext";
 import {
     Table,
     TableBody,
@@ -51,7 +51,7 @@ export default function Empresas() {
                                         <TableCell colSpan={5} className="text-center py-4">Nenhuma empresa cadastrada.</TableCell>
                                     </TableRow>
                                 ) : (
-                                    companies.map((company: any) => (
+                                    companies.map((company: Company) => (
                                         <TableRow key={company.id}>
                                             <TableCell className="font-medium">{company.razao_social}</TableCell>
                                             <TableCell>{company.nome_fantasia || "-"}</TableCell>

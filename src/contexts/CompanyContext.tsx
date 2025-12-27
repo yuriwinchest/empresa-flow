@@ -10,7 +10,7 @@ export interface Company {
   is_active: boolean;
 }
 
-interface CompanyContextType {
+export interface CompanyContextType {
   companies: Company[];
   selectedCompany: Company | null;
   setSelectedCompany: (company: Company | null) => void;

@@ -54,8 +54,8 @@ export default function Movimentacoes() {
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
 
-            let query = (supabase
-                .from("transactions") as any)
+            let query = (supabase as any)
+                .from("transactions")
                 .select(`
             *,
             bank_account:bank_accounts(name),
