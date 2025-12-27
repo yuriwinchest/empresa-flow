@@ -291,9 +291,19 @@ export type Database = {
       clients: {
         Row: {
           celular: string | null
+          cnae: string | null
           company_id: string
+          contato_nome: string | null
+          contribuinte: boolean | null
           cpf_cnpj: string | null
           created_at: string
+          dados_bancarios_agencia: string | null
+          dados_bancarios_banco: string | null
+          dados_bancarios_conta: string | null
+          dados_bancarios_pix: string | null
+          dados_bancarios_tipo: string | null
+          dados_bancarios_titular_cpf_cnpj: string | null
+          dados_bancarios_titular_nome: string | null
           email: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -302,22 +312,41 @@ export type Database = {
           endereco_estado: string | null
           endereco_logradouro: string | null
           endereco_numero: string | null
+          fax: string | null
           id: string
           inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          inscricao_suframa: string | null
           is_active: boolean
           nome_fantasia: string | null
           observacoes: string | null
+          observacoes_internas: string | null
+          optante_simples: boolean | null
+          produtor_rural: boolean | null
           razao_social: string
           tags: string[] | null
           telefone: string | null
+          telefone_2: string | null
+          tipo_atividade: string | null
           tipo_pessoa: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           celular?: string | null
+          cnae?: string | null
           company_id: string
+          contato_nome?: string | null
+          contribuinte?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          dados_bancarios_agencia?: string | null
+          dados_bancarios_banco?: string | null
+          dados_bancarios_conta?: string | null
+          dados_bancarios_pix?: string | null
+          dados_bancarios_tipo?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -326,22 +355,41 @@ export type Database = {
           endereco_estado?: string | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
+          fax?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
           is_active?: boolean
           nome_fantasia?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          optante_simples?: boolean | null
+          produtor_rural?: boolean | null
           razao_social: string
           tags?: string[] | null
           telefone?: string | null
+          telefone_2?: string | null
+          tipo_atividade?: string | null
           tipo_pessoa?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           celular?: string | null
+          cnae?: string | null
           company_id?: string
+          contato_nome?: string | null
+          contribuinte?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
+          dados_bancarios_agencia?: string | null
+          dados_bancarios_banco?: string | null
+          dados_bancarios_conta?: string | null
+          dados_bancarios_pix?: string | null
+          dados_bancarios_tipo?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -350,16 +398,25 @@ export type Database = {
           endereco_estado?: string | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
+          fax?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
           is_active?: boolean
           nome_fantasia?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          optante_simples?: boolean | null
+          produtor_rural?: boolean | null
           razao_social?: string
           tags?: string[] | null
           telefone?: string | null
+          telefone_2?: string | null
+          tipo_atividade?: string | null
           tipo_pessoa?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -482,7 +539,10 @@ export type Database = {
       suppliers: {
         Row: {
           celular: string | null
+          cnae: string | null
           company_id: string
+          contato_nome: string | null
+          contribuinte: boolean | null
           cpf_cnpj: string | null
           created_at: string
           dados_bancarios_agencia: string | null
@@ -490,6 +550,8 @@ export type Database = {
           dados_bancarios_conta: string | null
           dados_bancarios_pix: string | null
           dados_bancarios_tipo: string | null
+          dados_bancarios_titular_cpf_cnpj: string | null
+          dados_bancarios_titular_nome: string | null
           email: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
@@ -498,20 +560,32 @@ export type Database = {
           endereco_estado: string | null
           endereco_logradouro: string | null
           endereco_numero: string | null
+          fax: string | null
           id: string
           inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          inscricao_suframa: string | null
           is_active: boolean
           nome_fantasia: string | null
           observacoes: string | null
+          observacoes_internas: string | null
+          optante_simples: boolean | null
+          produtor_rural: boolean | null
           razao_social: string
           tags: string[] | null
           telefone: string | null
+          telefone_2: string | null
+          tipo_atividade: string | null
           tipo_pessoa: string
           updated_at: string
+          website: string | null
         }
         Insert: {
           celular?: string | null
+          cnae?: string | null
           company_id: string
+          contato_nome?: string | null
+          contribuinte?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           dados_bancarios_agencia?: string | null
@@ -519,6 +593,8 @@ export type Database = {
           dados_bancarios_conta?: string | null
           dados_bancarios_pix?: string | null
           dados_bancarios_tipo?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -527,20 +603,32 @@ export type Database = {
           endereco_estado?: string | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
+          fax?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
           is_active?: boolean
           nome_fantasia?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          optante_simples?: boolean | null
+          produtor_rural?: boolean | null
           razao_social: string
           tags?: string[] | null
           telefone?: string | null
+          telefone_2?: string | null
+          tipo_atividade?: string | null
           tipo_pessoa?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
           celular?: string | null
+          cnae?: string | null
           company_id?: string
+          contato_nome?: string | null
+          contribuinte?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           dados_bancarios_agencia?: string | null
@@ -548,6 +636,8 @@ export type Database = {
           dados_bancarios_conta?: string | null
           dados_bancarios_pix?: string | null
           dados_bancarios_tipo?: string | null
+          dados_bancarios_titular_cpf_cnpj?: string | null
+          dados_bancarios_titular_nome?: string | null
           email?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
@@ -556,16 +646,25 @@ export type Database = {
           endereco_estado?: string | null
           endereco_logradouro?: string | null
           endereco_numero?: string | null
+          fax?: string | null
           id?: string
           inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          inscricao_suframa?: string | null
           is_active?: boolean
           nome_fantasia?: string | null
           observacoes?: string | null
+          observacoes_internas?: string | null
+          optante_simples?: boolean | null
+          produtor_rural?: boolean | null
           razao_social?: string
           tags?: string[] | null
           telefone?: string | null
+          telefone_2?: string | null
+          tipo_atividade?: string | null
           tipo_pessoa?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
