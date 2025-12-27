@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Phone, Mail, Globe, Landmark, FileText, Settings, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const clientFormSchema = z.object({
     tipo_pessoa: z.enum(["PF", "PJ"]),
@@ -138,10 +139,12 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
         }
 
         try {
+            const { cep, ...rest } = values;
             const clientData = {
-                ...values,
+                ...rest,
+                razao_social: values.razao_social,
                 company_id: selectedCompany.id,
-                endereco_cep: values.cep,
+                endereco_cep: cep || "",
             };
 
             let error;
@@ -152,9 +155,9 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
                     .eq("id", initialData.id);
                 error = updateError;
             } else {
-                const { error: insertError } = await supabase
+            const { error: insertError } = await supabase
                     .from("clients")
-                    .insert(clientData);
+                    .insert([clientData]);
                 error = insertError;
             }
 
