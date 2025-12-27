@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -41,6 +41,7 @@ interface CategoryFormProps {
 export function CategoryForm({ onSuccess, initialData }: CategoryFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const queryClient = useQueryClient();
 
     const form = useForm<CategoryFormValues>({
@@ -75,13 +76,13 @@ export function CategoryForm({ onSuccess, initialData }: CategoryFormProps) {
 
             let error;
             if (initialData?.id) {
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("categories")
                     .update(payload)
                     .eq("id", initialData.id);
                 error = err;
             } else {
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("categories")
                     .insert(payload);
                 error = err;

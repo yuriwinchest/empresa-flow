@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -76,6 +77,7 @@ interface SupplierFormProps {
 export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("endereco");
 
@@ -147,13 +149,13 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
 
             let error;
             if (initialData?.id) {
-                const { error: updateError } = await supabase
+                const { error: updateError } = await activeClient
                     .from("suppliers")
                     .update(supplierData)
                     .eq("id", initialData.id);
                 error = updateError;
             } else {
-                const { error: insertError } = await supabase
+                const { error: insertError } = await activeClient
                     .from("suppliers")
                     .insert(supplierData);
                 error = insertError;

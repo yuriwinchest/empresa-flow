@@ -14,21 +14,23 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategorySheet } from "@/components/categories/CategorySheet";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Badge } from "@/components/ui/badge";
 
 export default function Categorias() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     const { data: categories, isLoading } = useQuery({
-        queryKey: ["categories", selectedCompany?.id],
+        queryKey: ["categories", selectedCompany?.id, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("categories")
                 .select("*")
                 .eq("company_id", selectedCompany.id)

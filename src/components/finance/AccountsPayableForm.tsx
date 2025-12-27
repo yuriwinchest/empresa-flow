@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -58,22 +58,23 @@ interface AccountsPayableFormProps {
 export function AccountsPayableForm({ onSuccess, initialData }: AccountsPayableFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const queryClient = useQueryClient();
 
     // Load suppliers and categories
     const { data: suppliers } = useQuery({
-        queryKey: ["suppliers", selectedCompany?.id],
+        queryKey: ["suppliers", selectedCompany?.id, activeClient],
         queryFn: async () => {
-            const { data } = await supabase.from("suppliers").select("id, razao_social").eq("company_id", selectedCompany!.id);
+            const { data } = await activeClient.from("suppliers").select("id, razao_social").eq("company_id", selectedCompany!.id);
             return data || [];
         },
         enabled: !!selectedCompany?.id
     });
 
     const { data: categories } = useQuery({
-        queryKey: ["categories", selectedCompany?.id],
+        queryKey: ["categories", selectedCompany?.id, activeClient],
         queryFn: async () => {
-            const { data } = await supabase.from("categories").select("id, name").eq("company_id", selectedCompany!.id);
+            const { data } = await activeClient.from("categories").select("id, name").eq("company_id", selectedCompany!.id);
             return data || [];
         },
         enabled: !!selectedCompany?.id
@@ -131,13 +132,13 @@ export function AccountsPayableForm({ onSuccess, initialData }: AccountsPayableF
 
             let error;
             if (initialData?.id) {
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("accounts_payable")
                     .update(payload)
                     .eq("id", initialData.id);
                 error = err;
             } else {
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("accounts_payable")
                     .insert(payload);
                 error = err;

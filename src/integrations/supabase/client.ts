@@ -2,16 +2,30 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Main Connection (Old/Default)
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// Secondary Connection (Tatica/New)
+const SUPABASE_TATICA_URL = import.meta.env.VITE_SUPABASE_TATICA_URL;
+const SUPABASE_TATICA_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY;
 
+// Default client (for backward compatibility and current app usage)
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  }
+});
+
+// New client for the Tatica project
+// Usage: import { supabaseTatica } from "@/integrations/supabase/client";
+export const supabaseTatica = createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_PUBLISHABLE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'sb-tatica-auth-token', // Custom storage key to avoid conflict with the main client
   }
 });

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { useCompany } from "@/contexts/CompanyContext";
 
@@ -62,13 +62,14 @@ export function PaymentModal({
 }: PaymentModalProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Fetch Bank Accounts
     const { data: bankAccounts } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id],
+        queryKey: ["bank_accounts", selectedCompany?.id, activeClient],
         queryFn: async () => {
-            const { data } = await supabase
+            const { data } = await activeClient
                 .from("bank_accounts")
                 .select("id, name, current_balance, banco")
                 .eq("company_id", selectedCompany!.id);
@@ -95,7 +96,7 @@ export function PaymentModal({
             let rpcError;
 
             if (type === 'payable') {
-                const { error } = await supabase.rpc('process_payment', {
+                const { error } = await activeClient.rpc('process_payment', {
                     p_account_id: accountingId,
                     p_bank_account_id: values.bank_account_id,
                     p_amount: parseFloat(values.amount),
@@ -103,7 +104,7 @@ export function PaymentModal({
                 });
                 rpcError = error;
             } else {
-                const { error } = await supabase.rpc('process_receipt', {
+                const { error } = await activeClient.rpc('process_receipt', {
                     p_account_id: accountingId,
                     p_bank_account_id: values.bank_account_id,
                     p_amount: parseFloat(values.amount),

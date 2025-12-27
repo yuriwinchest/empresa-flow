@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
 
 export interface Company {
@@ -21,7 +20,7 @@ export interface CompanyContextType {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, activeClient } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +34,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await activeClient
         .from("companies")
         .select("id, cnpj, razao_social, nome_fantasia, is_active")
         .eq("is_active", true)
@@ -58,7 +57,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchCompanies();
-  }, [user]);
+  }, [user, activeClient]);
 
   const refreshCompanies = async () => {
     await fetchCompanies();

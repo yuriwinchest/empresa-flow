@@ -1,15 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Company, CompanyFormData } from "@/types/company";
 import { toast } from "sonner";
 
 export function useCompanies(userId?: string) {
     const queryClient = useQueryClient();
+    const { activeClient, isUsingSecondary } = useAuth();
 
     const { data: companies, isLoading } = useQuery({
-        queryKey: ["companies"],
+        // Include isUsingSecondary in queryKey to differentiate cache between DBs
+        queryKey: ["companies", isUsingSecondary],
         queryFn: async () => {
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("companies")
                 .select("*")
                 .order("razao_social");
@@ -21,7 +23,7 @@ export function useCompanies(userId?: string) {
 
     const createMutation = useMutation({
         mutationFn: async (data: CompanyFormData) => {
-            const { error } = await supabase.from("companies").insert([data]);
+            const { error } = await activeClient.from("companies").insert([data]);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -35,7 +37,7 @@ export function useCompanies(userId?: string) {
 
     const updateMutation = useMutation({
         mutationFn: async ({ id, data }: { id: string; data: CompanyFormData }) => {
-            const { error } = await supabase
+            const { error } = await activeClient
                 .from("companies")
                 .update(data)
                 .eq("id", id);

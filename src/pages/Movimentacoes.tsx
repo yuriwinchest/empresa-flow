@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ArrowUpCircle, ArrowDownCircle, Filter, Calendar as CalendarIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ import { Transaction } from "@/types/finance";
 
 export default function Movimentacoes() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedAccount, setSelectedAccount] = useState<string>("all");
     const [dateRange, setDateRange] = useState({
@@ -37,9 +38,9 @@ export default function Movimentacoes() {
 
     // Fetch Bank Accounts for filter
     const { data: accounts } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id],
+        queryKey: ["bank_accounts", selectedCompany?.id, activeClient],
         queryFn: async () => {
-            const { data } = await supabase
+            const { data } = await activeClient
                 .from("bank_accounts")
                 .select("id, name")
                 .eq("company_id", selectedCompany!.id);
@@ -50,11 +51,11 @@ export default function Movimentacoes() {
 
     // Fetch Transactions
     const { data: transactions, isLoading } = useQuery({
-        queryKey: ["transactions", selectedCompany?.id, selectedAccount, dateRange],
+        queryKey: ["transactions", selectedCompany?.id, selectedAccount, dateRange, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
 
-            let query = (supabase as any)
+            let query = (activeClient as any)
                 .from("transactions")
                 .select(`
             *,

@@ -14,7 +14,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountsPayableSheet } from "@/components/finance/AccountsPayableSheet";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
 import { AccountsPayable } from "@/types/finance";
@@ -24,6 +25,7 @@ import { PaymentModal } from "@/components/transactions/PaymentModal";
 
 export default function ContasPagar() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsPayable | undefined>(undefined);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -32,10 +34,10 @@ export default function ContasPagar() {
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
     const { data: bills, isLoading } = useQuery({
-        queryKey: ["accounts_payable", selectedCompany?.id],
+        queryKey: ["accounts_payable", selectedCompany?.id, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("accounts_payable")
                 .select(`
             *,

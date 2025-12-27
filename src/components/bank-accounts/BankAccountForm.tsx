@@ -19,7 +19,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -46,6 +46,7 @@ interface BankAccountFormProps {
 export function BankAccountForm({ onSuccess, initialData }: BankAccountFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const queryClient = useQueryClient();
 
     const form = useForm<BankAccountFormValues>({
@@ -103,13 +104,13 @@ export function BankAccountForm({ onSuccess, initialData }: BankAccountFormProps
             if (initialData?.id) {
                 // Don't update current_balance on edit to avoid messing up transactions
                 const { current_balance, ...updatePayload } = payload;
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("bank_accounts")
                     .update(updatePayload)
                     .eq("id", initialData.id);
                 error = err;
             } else {
-                const { error: err } = await supabase
+                const { error: err } = await activeClient
                     .from("bank_accounts")
                     .insert(payload);
                 error = err;

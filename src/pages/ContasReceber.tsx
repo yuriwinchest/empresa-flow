@@ -14,7 +14,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountsReceivableSheet } from "@/components/finance/AccountsReceivableSheet";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
 import { AccountsReceivable } from "@/types/finance";
@@ -24,6 +25,7 @@ import { PaymentModal } from "@/components/transactions/PaymentModal";
 
 export default function ContasReceber() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsReceivable | undefined>(undefined);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -32,10 +34,10 @@ export default function ContasReceber() {
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
     const { data: bills, isLoading } = useQuery({
-        queryKey: ["accounts_receivable", selectedCompany?.id],
+        queryKey: ["accounts_receivable", selectedCompany?.id, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("accounts_receivable")
                 .select(`
             *,

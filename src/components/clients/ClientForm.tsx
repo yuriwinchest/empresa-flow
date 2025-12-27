@@ -11,6 +11,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -20,7 +21,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -75,6 +77,7 @@ interface ClientFormProps {
 export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
     const { toast } = useToast();
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("endereco");
 
@@ -146,13 +149,13 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
 
             let error;
             if (initialData?.id) {
-                const { error: updateError } = await supabase
+                const { error: updateError } = await activeClient
                     .from("clients")
                     .update(clientData)
                     .eq("id", initialData.id);
                 error = updateError;
             } else {
-                const { error: insertError } = await supabase
+                const { error: insertError } = await activeClient
                     .from("clients")
                     .insert(clientData);
                 error = insertError;

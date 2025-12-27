@@ -14,22 +14,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupplierSheet } from "@/components/suppliers/SupplierSheet";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useSearchParams } from "react-router-dom";
 
 export default function Fornecedores() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: suppliers, isLoading } = useQuery({
-        queryKey: ["suppliers", selectedCompany?.id],
+        queryKey: ["suppliers", selectedCompany?.id, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("suppliers")
                 .select("*")
                 .eq("company_id", selectedCompany.id)

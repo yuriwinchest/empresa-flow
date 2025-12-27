@@ -14,13 +14,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientSheet } from "@/components/clients/ClientSheet";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useSearchParams } from "react-router-dom";
 
 export default function Clientes() {
     const { selectedCompany } = useCompany();
+    const { activeClient } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -28,10 +30,10 @@ export default function Clientes() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const { data: clients, isLoading, refetch } = useQuery({
-        queryKey: ["clients", selectedCompany?.id],
+        queryKey: ["clients", selectedCompany?.id, activeClient],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
-            const { data, error } = await supabase
+            const { data, error } = await activeClient
                 .from("clients")
                 .select("*")
                 .eq("company_id", selectedCompany.id)
