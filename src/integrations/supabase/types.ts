@@ -709,6 +709,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_payment: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_bank_account_id: string
+          p_payment_date: string
+        }
+        Returns: undefined
+      }
+      process_receipt: {
+        Args: {
+          p_account_id: string
+          p_amount: number
+          p_bank_account_id: string
+          p_receive_date: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
