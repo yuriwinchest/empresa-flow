@@ -73,7 +73,10 @@ export default function Clientes() {
         const { error } = await activeClient.from("clients").delete().eq("id", client.id);
         if (!error) {
             refetch();
-            toast.success("Cliente excluído");
+            toast({
+                title: "Sucesso",
+                description: "Cliente excluído",
+            });
             if (user?.id) {
                 await logDeletion(activeClient, {
                     userId: user.id,
@@ -84,7 +87,11 @@ export default function Clientes() {
                 });
             }
         } else {
-            toast.error("Erro ao excluir");
+            toast({
+                title: "Erro",
+                description: "Erro ao excluir",
+                variant: "destructive",
+            });
         }
     };
     const filteredClients = clients?.filter(client =>
