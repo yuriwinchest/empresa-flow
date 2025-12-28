@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Building2, User, Globe, Search, Landmark, Mail, Phone, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, User, Globe, Search, Landmark, Mail, Phone, FileText } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { Company, CompanyFormData } from "@/types/company";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,10 +26,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { maskCNPJ, maskCPF, maskPhone, maskCEP, unmask } from "@/utils/masks";
 import { toast } from "sonner";
+import { logDeletion } from "@/lib/audit";
 
 export default function Empresas() {
-    const { user } = useAuth();
-    const { companies, isLoading, createCompany, updateCompany } = useCompanies(user?.id);
+    const { user, activeClient } = useAuth();
+    const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useCompanies(user?.id);
 
     // UI State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -156,6 +157,25 @@ export default function Empresas() {
                 await createCompany.mutateAsync(dataToSave);
             }
             resetForm();
+        } catch (error) {
+            console.error(error);
+        }
+    };
+    
+    const handleDelete = async (company: Company) => {
+        const ok = window.confirm(`Excluir a empresa "${company.razao_social}"? Esta ação não pode ser desfeita.`);
+        if (!ok) return;
+        try {
+            await deleteCompany.mutateAsync(company.id);
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: company.id,
+                    entity: "companies",
+                    entityId: company.id,
+                    payload: { razao_social: company.razao_social },
+                });
+            }
         } catch (error) {
             console.error(error);
         }
@@ -521,6 +541,14 @@ export default function Empresas() {
                                                     className="w-10 h-10 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
                                                 >
                                                     <Pencil className="h-5 w-5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDelete(company)}
+                                                    className="w-10 h-10 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                                >
+                                                    <Trash2 className="h-5 w-5" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

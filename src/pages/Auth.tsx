@@ -58,6 +58,8 @@ export default function Auth() {
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           toast.error("Email ou senha incorretos");
+        } else if (error.message.includes("Acesso negado")) {
+           toast.error(error.message);
         } else {
           toast.error("Erro ao fazer login: " + error.message);
         }
@@ -145,6 +147,7 @@ export default function Auth() {
                   <Input
                     id="login-email"
                     type="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
@@ -156,6 +159,7 @@ export default function Auth() {
                   <Input
                     id="login-password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
@@ -186,6 +190,7 @@ export default function Auth() {
                   <Input
                     id="signup-email"
                     type="email"
+                    autoComplete="email"
                     placeholder="seu@email.com"
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
@@ -197,6 +202,7 @@ export default function Auth() {
                   <Input
                     id="signup-password"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
@@ -208,6 +214,7 @@ export default function Auth() {
                   <Input
                     id="signup-confirm"
                     type="password"
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={signupConfirmPassword}
                     onChange={(e) => setSignupConfirmPassword(e.target.value)}

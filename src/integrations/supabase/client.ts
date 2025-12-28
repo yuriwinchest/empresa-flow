@@ -19,13 +19,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// New client for the Tatica project
-// Usage: import { supabaseTatica } from "@/integrations/supabase/client";
-export const supabaseTatica = createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    storageKey: 'sb-tatica-auth-token', // Custom storage key to avoid conflict with the main client
-  }
-});
+const hasSecondaryProject =
+  Boolean(SUPABASE_TATICA_URL && SUPABASE_TATICA_PUBLISHABLE_KEY) &&
+  (SUPABASE_TATICA_URL !== SUPABASE_URL || SUPABASE_TATICA_PUBLISHABLE_KEY !== SUPABASE_PUBLISHABLE_KEY);
+
+export const supabaseTatica = hasSecondaryProject
+  ? createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+        storageKey: 'sb-tatica-auth-token',
+      }
+    })
+  : supabase;

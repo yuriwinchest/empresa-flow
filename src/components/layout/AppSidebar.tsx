@@ -16,6 +16,7 @@ import {
   UserCheck,
   Package,
   Target,
+  Book,
 } from "lucide-react";
 import {
   Sidebar,
@@ -203,6 +204,14 @@ export function AppSidebar() {
               <Link to="/configuracoes">
                 <Settings />
                 <span>Configurações</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/ajuda")}>
+              <Link to="/ajuda">
+                <Book />
+                <span>Ajuda & Manual</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

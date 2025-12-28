@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -19,16 +19,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useSearchParams } from "react-router-dom";
 import { maskCNPJ, maskCPF, maskPhone } from "@/utils/masks";
+import { logDeletion } from "@/lib/audit";
 
 export default function Fornecedores() {
     const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary } = useAuth();
+    const { activeClient, isUsingSecondary, user } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
 
-    const { data: suppliers, isLoading } = useQuery({
+    const { data: suppliers, isLoading, refetch } = useQuery({
         queryKey: ["suppliers", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
@@ -63,6 +64,23 @@ export default function Fornecedores() {
         setIsSheetOpen(true);
     };
 
+    const handleDelete = async (supplier: any) => {
+        const ok = window.confirm(`Excluir o fornecedor "${supplier.razao_social}"?`);
+        if (!ok) return;
+        const { error } = await activeClient.from("suppliers").delete().eq("id", supplier.id);
+        if (!error) {
+            refetch();
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: selectedCompany?.id || null,
+                    entity: "suppliers",
+                    entityId: supplier.id,
+                    payload: { razao_social: supplier.razao_social },
+                });
+            }
+        }
+    };
     const filteredSuppliers = suppliers?.filter(supplier =>
         supplier.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (supplier.nome_fantasia && supplier.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -139,6 +157,9 @@ export default function Fornecedores() {
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(supplier)}>
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(supplier)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

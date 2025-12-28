@@ -20,10 +20,11 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { useToast } from "@/components/ui/use-toast";
 import { useSearchParams } from "react-router-dom";
 import { maskCNPJ, maskCPF, maskPhone } from "@/utils/masks";
+import { logDeletion } from "@/lib/audit";
 
 export default function Clientes() {
     const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary } = useAuth();
+    const { activeClient, isUsingSecondary, user } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -66,6 +67,26 @@ export default function Clientes() {
         setIsSheetOpen(true);
     };
 
+    const handleDelete = async (client: any) => {
+        const ok = window.confirm(`Excluir o cliente "${client.razao_social}"?`);
+        if (!ok) return;
+        const { error } = await activeClient.from("clients").delete().eq("id", client.id);
+        if (!error) {
+            refetch();
+            toast.success("Cliente excluído");
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: selectedCompany?.id || null,
+                    entity: "clients",
+                    entityId: client.id,
+                    payload: { razao_social: client.razao_social },
+                });
+            }
+        } else {
+            toast.error("Erro ao excluir");
+        }
+    };
     const filteredClients = clients?.filter(client =>
         client.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (client.nome_fantasia && client.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -142,6 +163,9 @@ export default function Clientes() {
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(client)}>
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(client)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

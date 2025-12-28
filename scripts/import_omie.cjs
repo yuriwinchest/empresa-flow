@@ -7,12 +7,12 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Configuration
-const supabaseUrl = process.env.VITE_SUPABASE_TATICA_URL || 'https://vimeqxiyxopvltjfkzml.supabase.co';
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const companyId = '7109ea16-1ec9-43ed-8779-043a17626083';
 
-if (!supabaseServiceKey) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is required in .env');
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env');
     process.exit(1);
 }
 

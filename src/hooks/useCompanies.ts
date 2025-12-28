@@ -9,14 +9,16 @@ export function useCompanies(userId?: string) {
 
     const { data: companies, isLoading } = useQuery({
         // Include isUsingSecondary in queryKey to differentiate cache between DBs
-        queryKey: ["companies", isUsingSecondary],
+        queryKey: ["companies", isUsingSecondary, userId],
         queryFn: async () => {
             const { data, error } = await activeClient
-                .from("companies")
-                .select("*")
-                .order("razao_social");
+                .from("user_companies")
+                .select("company:companies(*)")
+                .eq("user_id", userId);
             if (error) throw error;
-            return data as Company[];
+            const mapped = (data || []).map((row: any) => row.company).filter((c: any) => !!c);
+            mapped.sort((a: any, b: any) => (a.razao_social || "").localeCompare(b.razao_social || ""));
+            return mapped as Company[];
         },
         enabled: !!userId,
     });
@@ -27,7 +29,7 @@ export function useCompanies(userId?: string) {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["companies"] });
+            queryClient.invalidateQueries({ queryKey: ["companies", isUsingSecondary, userId] });
             toast.success("Empresa criada com sucesso!");
         },
         onError: () => {
@@ -44,11 +46,28 @@ export function useCompanies(userId?: string) {
             if (error) throw error;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["companies"] });
+            queryClient.invalidateQueries({ queryKey: ["companies", isUsingSecondary, userId] });
             toast.success("Empresa atualizada com sucesso!");
         },
         onError: () => {
             toast.error("Erro ao atualizar empresa");
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await activeClient
+                .from("companies")
+                .delete()
+                .eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["companies", isUsingSecondary, userId] });
+            toast.success("Empresa excluída com sucesso!");
+        },
+        onError: () => {
+            toast.error("Erro ao excluir empresa");
         },
     });
 
@@ -57,5 +76,6 @@ export function useCompanies(userId?: string) {
         isLoading,
         createCompany: createMutation,
         updateCompany: updateMutation,
+        deleteCompany: deleteMutation,
     };
 }

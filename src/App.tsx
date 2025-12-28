@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import CompanyDashboard from "./pages/CompanyDashboard";
 import Financeiro from "./pages/Financeiro";
 import Empresas from "./pages/Empresas";
 import Clientes from "./pages/Clientes";
@@ -20,6 +21,8 @@ import Conciliacao from "./pages/Conciliacao";
 import Relatorios from "./pages/Relatorios";
 import Configuracoes from "./pages/Configuracoes";
 import ImportacaoOmie from "./pages/ImportacaoOmie";
+import ImportData from "./pages/ImportData";
+import Ajuda from "./pages/Ajuda";
 import CRM from "./pages/CRM";
 import ProdutosDepartamentos from "./pages/ProdutosDepartamentos";
 import Recibos from "./pages/Recibos";
@@ -34,11 +37,17 @@ const App = () => (
         <CompanyProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/:id" element={<CompanyDashboard />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/empresas" element={<Empresas />} />
               <Route path="/clientes" element={<Clientes />} />
@@ -56,6 +65,8 @@ const App = () => (
               <Route path="/operacional" element={<ProdutosDepartamentos />} />
               <Route path="/recibos" element={<Recibos />} />
               <Route path="/importacao-omie" element={<ImportacaoOmie />} />
+              <Route path="/import-data" element={<ImportData />} />
+              <Route path="/ajuda" element={<Ajuda />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

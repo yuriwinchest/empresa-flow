@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Pencil, DollarSign } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -20,12 +20,13 @@ import { useCompany } from "@/contexts/CompanyContext";
 import { format } from "date-fns";
 import { AccountsReceivable } from "@/types/finance";
 import { Badge } from "@/components/ui/badge";
+import { logDeletion } from "@/lib/audit";
 
 import { PaymentModal } from "@/components/transactions/PaymentModal";
 
 export default function ContasReceber() {
     const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary } = useAuth();
+    const { activeClient, isUsingSecondary, user } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsReceivable | undefined>(undefined);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -33,7 +34,7 @@ export default function ContasReceber() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
 
-    const { data: bills, isLoading } = useQuery({
+    const { data: bills, isLoading, refetch } = useQuery({
         queryKey: ["accounts_receivable", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
@@ -80,6 +81,24 @@ export default function ContasReceber() {
         if (status === 'cancelled') return <Badge variant="secondary">Cancelado</Badge>;
         if (isOverdue) return <Badge variant="destructive">Atrasado</Badge>;
         return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">Pendente</Badge>;
+    };
+
+    const handleDelete = async (bill: AccountsReceivable) => {
+        const ok = window.confirm(`Excluir o recebimento "${bill.description}"?`);
+        if (!ok) return;
+        const { error } = await activeClient.from("accounts_receivable").delete().eq("id", bill.id);
+        if (!error) {
+            refetch();
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: selectedCompany?.id || null,
+                    entity: "accounts_receivable",
+                    entityId: bill.id,
+                    payload: { description: bill.description, amount: bill.amount },
+                });
+            }
+        }
     };
 
     return (
@@ -189,6 +208,9 @@ export default function ContasReceber() {
                                                 )}
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(bill)}>
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(bill)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

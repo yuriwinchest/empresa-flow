@@ -35,18 +35,22 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data, error } = await activeClient
-        .from("companies")
-        .select("id, cnpj, razao_social, nome_fantasia, is_active")
-        .eq("is_active", true)
-        .order("razao_social");
+        .from("user_companies")
+        .select("company:companies(id, cnpj, razao_social, nome_fantasia, is_active)")
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setCompanies(data || []);
+      const mapped = (data || [])
+        .map((row: any) => row.company)
+        .filter((c: any) => c && c.is_active);
+      mapped.sort((a: any, b: any) => (a.razao_social || "").localeCompare(b.razao_social || ""));
+
+      setCompanies(mapped);
 
       // Select first company if none selected
-      if (data && data.length > 0 && !selectedCompany) {
-        setSelectedCompany(data[0]);
+      if (mapped && mapped.length > 0 && !selectedCompany) {
+        setSelectedCompany(mapped[0]);
       }
     } catch (error) {
       console.error("Error fetching companies:", error);

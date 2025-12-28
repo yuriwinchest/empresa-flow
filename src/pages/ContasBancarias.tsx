@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Pencil, Landmark } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Landmark } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -18,15 +18,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Badge } from "@/components/ui/badge";
+import { logDeletion } from "@/lib/audit";
 
 export default function ContasBancarias() {
     const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary } = useAuth();
+    const { activeClient, isUsingSecondary, user } = useAuth();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const { data: accounts, isLoading } = useQuery({
+    const { data: accounts, isLoading, refetch } = useQuery({
         queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
             if (!selectedCompany?.id) return [];
@@ -52,6 +53,23 @@ export default function ContasBancarias() {
         setIsSheetOpen(true);
     };
 
+    const handleDelete = async (acc: any) => {
+        const ok = window.confirm(`Excluir a conta "${acc.name}"?`);
+        if (!ok) return;
+        const { error } = await activeClient.from("bank_accounts").delete().eq("id", acc.id);
+        if (!error) {
+            refetch();
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: selectedCompany?.id || null,
+                    entity: "bank_accounts",
+                    entityId: acc.id,
+                    payload: { name: acc.name },
+                });
+            }
+        }
+    };
     const filteredAccounts = accounts?.filter(acc =>
         acc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (acc.banco || "").toLowerCase().includes(searchTerm.toLowerCase())
@@ -122,6 +140,9 @@ export default function ContasBancarias() {
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(acc)}>
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(acc)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

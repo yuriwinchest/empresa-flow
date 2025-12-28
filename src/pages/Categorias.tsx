@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Pencil, Tag } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -13,15 +13,17 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategorySheet } from "@/components/categories/CategorySheet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Badge } from "@/components/ui/badge";
+import { logDeletion } from "@/lib/audit";
 
 export default function Categorias() {
     const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary } = useAuth();
+    const { activeClient, isUsingSecondary, user } = useAuth();
+    const queryClient = useQueryClient();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
@@ -52,6 +54,23 @@ export default function Categorias() {
         setIsSheetOpen(true);
     };
 
+    const handleDelete = async (cat: any) => {
+        const ok = window.confirm(`Excluir a categoria "${cat.name}"?`);
+        if (!ok) return;
+        const { error } = await activeClient.from("categories").delete().eq("id", cat.id);
+        if (!error) {
+            queryClient.invalidateQueries({ queryKey: ["categories", selectedCompany?.id, isUsingSecondary] });
+            if (user?.id) {
+                await logDeletion(activeClient, {
+                    userId: user.id,
+                    companyId: selectedCompany?.id || null,
+                    entity: "categories",
+                    entityId: cat.id,
+                    payload: { name: cat.name },
+                });
+            }
+        }
+    };
     const filteredCategories = categories?.filter(cat =>
         cat.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -119,6 +138,9 @@ export default function Categorias() {
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)}>
                                                     <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(cat)}>
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </TableCell>
                                         </TableRow>
