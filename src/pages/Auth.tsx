@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +85,16 @@ export default function Auth() {
       navigate("/dashboard");
     }
   }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sidebar">
+        <div className="animate-pulse text-sidebar-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleForgotPassword = async () => {
     setIsLoading(true);

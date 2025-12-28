@@ -40,8 +40,28 @@ export function useCompanies(userId?: string) {
 
     const createMutation = useMutation({
         mutationFn: async (data: CompanyFormData) => {
-            const { error } = await activeClient.from("companies").insert([data]);
-            if (error) throw error;
+            if (!userId) throw new Error("Usuário não encontrado");
+
+            const { data: insertedCompany, error: insertError } = await activeClient
+                .from("companies")
+                .insert([data])
+                .select("id")
+                .single();
+
+            if (insertError) throw insertError;
+            if (!insertedCompany?.id) throw new Error("Falha ao criar empresa");
+
+            await activeClient.from("user_companies").update({ is_default: false }).eq("user_id", userId);
+
+            const { error: linkError } = await activeClient.from("user_companies").insert([
+                {
+                    user_id: userId,
+                    company_id: insertedCompany.id,
+                    is_default: true,
+                },
+            ]);
+
+            if (linkError) throw linkError;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["companies", isUsingSecondary, userId] });
