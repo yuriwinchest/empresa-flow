@@ -3,18 +3,29 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Main Connection (Old/Default)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY =
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  undefined;
 
 // Secondary Connection (Tatica/New)
-const SUPABASE_TATICA_URL = import.meta.env.VITE_SUPABASE_TATICA_URL;
-const SUPABASE_TATICA_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY;
+const SUPABASE_TATICA_URL = import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_URL || import.meta.env.VITE_SUPABASE_TATICA_URL;
+const SUPABASE_TATICA_KEY =
+  import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_PUBLISHABLE_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_TATICA_ANON_KEY ||
+  undefined;
 
 const missingMainEnv: string[] = [];
 if (!SUPABASE_URL) missingMainEnv.push('VITE_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_URL');
-if (!SUPABASE_PUBLISHABLE_KEY)
-  missingMainEnv.push('VITE_SUPABASE_PUBLISHABLE_KEY ou NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+if (!SUPABASE_KEY)
+  missingMainEnv.push(
+    'VITE_SUPABASE_PUBLISHABLE_KEY/VITE_SUPABASE_ANON_KEY ou NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/NEXT_PUBLIC_SUPABASE_ANON_KEY'
+  );
 if (missingMainEnv.length) {
   throw new Error(
     `Configuração Supabase ausente (${missingMainEnv.join(
@@ -24,7 +35,7 @@ if (missingMainEnv.length) {
 }
 
 // Default client (for backward compatibility and current app usage)
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
@@ -33,11 +44,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 const hasSecondaryProject =
-  Boolean(SUPABASE_TATICA_URL && SUPABASE_TATICA_PUBLISHABLE_KEY) &&
-  (SUPABASE_TATICA_URL !== SUPABASE_URL || SUPABASE_TATICA_PUBLISHABLE_KEY !== SUPABASE_PUBLISHABLE_KEY);
+  Boolean(SUPABASE_TATICA_URL && SUPABASE_TATICA_KEY) &&
+  (SUPABASE_TATICA_URL !== SUPABASE_URL || SUPABASE_TATICA_KEY !== SUPABASE_KEY);
 
 export const supabaseTatica = hasSecondaryProject
-  ? createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_PUBLISHABLE_KEY, {
+  ? createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_KEY, {
     auth: {
       storage: localStorage,
       persistSession: true,

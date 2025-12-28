@@ -3,6 +3,8 @@ import { User, Session, SupabaseClient } from "@supabase/supabase-js";
 import { supabase, supabaseTatica } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const HAS_SECONDARY_PROJECT = supabaseTatica !== supabase;
+
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -22,8 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [activeClient, setActiveClient] = useState<SupabaseClient>(supabase); // Default to main client
   const [isUsingSecondary, setIsUsingSecondary] = useState(false);
-  const preferSecondaryRef = useRef<boolean>(supabaseTatica !== supabase);
-  const hasSecondaryProject = supabaseTatica !== supabase;
+  const preferSecondaryRef = useRef<boolean>(HAS_SECONDARY_PROJECT);
+  const isUsingSecondaryRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Check sessions for both clients on load
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       };
 
-      if (hasSecondaryProject) {
+      if (HAS_SECONDARY_PROJECT) {
         const { data: { session: secSession } } = await supabaseTatica.auth.getSession();
 
         if (secSession) {
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(secSession);
             setUser(validUser);
             setActiveClient(supabaseTatica);
+            isUsingSecondaryRef.current = true;
             setIsUsingSecondary(true);
             preferSecondaryRef.current = true;
             setLoading(false);
@@ -92,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(mainSession);
           setUser(validUser);
           setActiveClient(supabase);
+          isUsingSecondaryRef.current = false;
           setIsUsingSecondary(false);
           preferSecondaryRef.current = false;
           setLoading(false);
@@ -127,8 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen to Main Client Auth Changes
     const { data: { subscription: mainSub } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (hasSecondaryProject && preferSecondaryRef.current) {
+      async (_event, session) => {
+        if (HAS_SECONDARY_PROJECT && preferSecondaryRef.current) {
           return;
         }
         if (session) {
@@ -154,9 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setUser(validUser);
           setActiveClient(supabase);
+          isUsingSecondaryRef.current = false;
           setIsUsingSecondary(false);
           preferSecondaryRef.current = false;
-        } else if (!session && !isUsingSecondary) {
+        } else if (!session && !isUsingSecondaryRef.current) {
           // Only clear if we are not actively using the secondary
           setSession(null);
           setUser(null);
@@ -165,8 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // Listen to Secondary Client Auth Changes
-    const secSub = hasSecondaryProject
-      ? supabaseTatica.auth.onAuthStateChange(async (event, session) => {
+    const secSub = HAS_SECONDARY_PROJECT
+      ? supabaseTatica.auth.onAuthStateChange(async (_event, session) => {
         if (session) {
           const { data: { user: validUser }, error } = await supabaseTatica.auth.getUser();
           if (error || !validUser) {
@@ -188,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(session);
           setUser(validUser);
           setActiveClient(supabaseTatica);
+          isUsingSecondaryRef.current = true;
           setIsUsingSecondary(true);
         }
       }).data.subscription
@@ -200,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (hasSecondaryProject) {
+    if (HAS_SECONDARY_PROJECT) {
       const { data: secData, error: secError } = await supabaseTatica.auth.signInWithPassword({ email, password });
 
       if (!secError && secData.session) {
@@ -227,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(secData.session);
         setUser(secData.user);
         setActiveClient(supabaseTatica);
+        isUsingSecondaryRef.current = true;
         setIsUsingSecondary(true);
         toast.info("Conectado ao banco Tatica (Novo).");
         return { error: null };
@@ -262,6 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(mainData.session);
       setUser(mainData.user);
       setActiveClient(supabase);
+      isUsingSecondaryRef.current = false;
       setIsUsingSecondary(false);
       toast.info("Conectado ao banco principal.");
       return { error: null };
@@ -311,12 +319,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Sign out from BOTH to be safe
     await supabase.auth.signOut();
-    if (hasSecondaryProject) {
+    if (HAS_SECONDARY_PROJECT) {
       await supabaseTatica.auth.signOut();
     }
     setSession(null);
     setUser(null);
     setActiveClient(supabase); // Reset to default
+    isUsingSecondaryRef.current = false;
     setIsUsingSecondary(false);
     preferSecondaryRef.current = false;
   };
