@@ -284,6 +284,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
+      const msg = error.message.toLowerCase();
+      if (
+        msg.includes("already registered") ||
+        msg.includes("user already registered") ||
+        msg.includes("already been registered") ||
+        msg.includes("duplicate") ||
+        msg.includes("already exists")
+      ) {
+        return { error: new Error("Este email já está cadastrado") };
+      }
       return { error };
     }
 

@@ -8,9 +8,9 @@ END $$;
 -- Accounts Payable (Contas a Pagar)
 CREATE TABLE IF NOT EXISTS accounts_payable (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  company_id UUID NOT NULL REFERENCES companies(id),
-  supplier_id UUID REFERENCES suppliers(id),
-  category_id UUID REFERENCES categories(id),
+  company_id UUID NOT NULL,
+  supplier_id UUID,
+  category_id UUID,
   description TEXT NOT NULL,
   amount DECIMAL(15,2) NOT NULL,
   due_date DATE NOT NULL,
@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS accounts_payable (
 -- Accounts Receivable (Contas a Receber)
 CREATE TABLE IF NOT EXISTS accounts_receivable (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  company_id UUID NOT NULL REFERENCES companies(id),
-  client_id UUID REFERENCES clients(id),
-  category_id UUID REFERENCES categories(id),
+  company_id UUID NOT NULL,
+  client_id UUID,
+  category_id UUID,
   description TEXT NOT NULL,
   amount DECIMAL(15,2) NOT NULL,
   due_date DATE NOT NULL,
@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS accounts_receivable (
 -- Transactions (Movimentações Bancárias)
 CREATE TABLE IF NOT EXISTS transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  company_id UUID NOT NULL REFERENCES companies(id),
-  bank_account_id UUID REFERENCES bank_accounts(id),
-  category_id UUID REFERENCES categories(id),
+  company_id UUID NOT NULL,
+  bank_account_id UUID,
+  category_id UUID,
   type TEXT NOT NULL CHECK (type IN ('credit', 'debit')),
   amount DECIMAL(15,2) NOT NULL,
   date DATE NOT NULL,

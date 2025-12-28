@@ -2,21 +2,68 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 // Configuration
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseUrl =
+    process.env.VITE_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const companyId = '7109ea16-1ec9-43ed-8779-043a17626083';
+let companyId = process.env.IMPORT_COMPANY_ID || process.env.COMPANY_ID || null;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in .env');
+    console.error('SUPABASE_URL (or VITE_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY are required in .env');
     process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function resolveCompanyId() {
+    if (companyId) {
+        const { data, error } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('id', companyId)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (data?.id) return companyId;
+
+        const companyName = process.env.IMPORT_COMPANY_NAME || 'Empresa';
+        const { data: created, error: createError } = await supabase
+            .from('companies')
+            .insert({ id: companyId, razao_social: companyName, is_active: true })
+            .select('id')
+            .single();
+
+        if (createError) throw createError;
+        return created.id;
+    }
+
+    const { data: existing, error: existingError } = await supabase
+        .from('companies')
+        .select('id')
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+    if (existingError) throw existingError;
+    if (existing?.[0]?.id) return existing[0].id;
+
+    const newCompanyId = crypto.randomUUID();
+    const companyName = process.env.IMPORT_COMPANY_NAME || 'Empresa';
+    const { data: created, error: createError } = await supabase
+        .from('companies')
+        .insert({ id: newCompanyId, razao_social: companyName, is_active: true })
+        .select('id')
+        .single();
+
+    if (createError) throw createError;
+    return created.id;
+}
 
 function parseCSV(content, delimiter = ';') {
     const lines = [];
@@ -354,6 +401,8 @@ async function importAccountsReceivable(categoryMap, clientMap) {
 async function run() {
     try {
         console.log('--- STARTING CONSOLIDATED IMPORT ---');
+        companyId = await resolveCompanyId();
+        console.log(`Using company_id=${companyId}`);
         const categoryMap = await importCategories();
         const { clientMap, supplierMap } = await importClientsSuppliers();
         await importDepartments();

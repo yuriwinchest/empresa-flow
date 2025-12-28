@@ -54,12 +54,12 @@ export default function Auth() {
       });
 
       const { error } = await signIn(validated.email, validated.password);
-      
+
       if (error) {
         if (error.message.includes("Invalid login credentials")) {
           toast.error("Email ou senha incorretos");
         } else if (error.message.includes("Acesso negado")) {
-           toast.error(error.message);
+          toast.error(error.message);
         } else {
           toast.error("Erro ao fazer login: " + error.message);
         }
@@ -90,9 +90,16 @@ export default function Auth() {
       });
 
       const { error } = await signUp(validated.email, validated.password, validated.fullName);
-      
+
       if (error) {
-        if (error.message.includes("already registered")) {
+        const msg = error.message.toLowerCase();
+        if (
+          msg.includes("already registered") ||
+          msg.includes("user already registered") ||
+          msg.includes("already been registered") ||
+          msg.includes("duplicate") ||
+          msg.includes("already exists")
+        ) {
           toast.error("Este email já está cadastrado");
         } else {
           toast.error("Erro ao criar conta: " + error.message);
@@ -139,7 +146,7 @@ export default function Auth() {
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar Conta</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -171,7 +178,7 @@ export default function Auth() {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
