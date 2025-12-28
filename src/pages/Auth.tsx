@@ -23,6 +23,30 @@ const signupSchema = loginSchema.extend({
   path: ["confirmPassword"],
 });
 
+const toPtBrAuthError = (message: string) => {
+  const msg = (message || "").toLowerCase();
+
+  if (msg.includes("invalid login credentials")) return "Email ou senha incorretos";
+  if (msg.includes("email not confirmed"))
+    return "Email ainda não confirmado. Verifique sua caixa de entrada ou spam.";
+  if (msg.includes("user not found")) return "Usuário não encontrado";
+  if (msg.includes("too many requests"))
+    return "Muitas tentativas. Aguarde um pouco e tente novamente.";
+  if (msg.includes("password should be at least") || msg.includes("weak password"))
+    return "Senha fraca. Use uma senha mais forte.";
+  if (
+    msg.includes("already registered") ||
+    msg.includes("user already registered") ||
+    msg.includes("already been registered") ||
+    msg.includes("duplicate") ||
+    msg.includes("already exists")
+  ) {
+    return "Este email já está cadastrado";
+  }
+
+  return message;
+};
+
 export default function Auth() {
   const navigate = useNavigate();
   const { user, signIn, signUp, loading } = useAuth();
@@ -56,12 +80,10 @@ export default function Auth() {
       const { error } = await signIn(validated.email, validated.password);
 
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast.error("Email ou senha incorretos");
-        } else if (error.message.includes("Acesso negado")) {
+        if (error.message.includes("Acesso negado")) {
           toast.error(error.message);
         } else {
-          toast.error("Erro ao fazer login: " + error.message);
+          toast.error(toPtBrAuthError(error.message));
         }
         return;
       }
@@ -92,18 +114,7 @@ export default function Auth() {
       const { error } = await signUp(validated.email, validated.password, validated.fullName);
 
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (
-          msg.includes("already registered") ||
-          msg.includes("user already registered") ||
-          msg.includes("already been registered") ||
-          msg.includes("duplicate") ||
-          msg.includes("already exists")
-        ) {
-          toast.error("Este email já está cadastrado");
-        } else {
-          toast.error("Erro ao criar conta: " + error.message);
-        }
+        toast.error(toPtBrAuthError(error.message));
         return;
       }
 
