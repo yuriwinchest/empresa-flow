@@ -2,6 +2,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { CompanySelector } from "@/components/CompanySelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface AppHeaderProps {
   title?: string;
@@ -9,6 +12,8 @@ interface AppHeaderProps {
 
 export function AppHeader({ title }: AppHeaderProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -17,6 +22,12 @@ export function AppHeader({ title }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background px-4">
       <SidebarTrigger />
+
+      {location.pathname !== "/" && (
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Voltar">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      )}
       
       {title && (
         <h1 className="text-lg font-semibold text-foreground">{title}</h1>

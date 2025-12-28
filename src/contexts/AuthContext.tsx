@@ -28,6 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isUsingSecondaryRef = useRef<boolean>(false);
 
   useEffect(() => {
+    const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number): Promise<T | null> => {
+      let timeoutId: number | undefined;
+      const timeoutPromise = new Promise<null>((resolve) => {
+        timeoutId = window.setTimeout(() => resolve(null), ms);
+      });
+      try {
+        return await Promise.race([Promise.resolve(promise), timeoutPromise]);
+      } finally {
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+      }
+    };
+
     // Check sessions for both clients on load
     const initAuth = async () => {
       setLoading(true);
@@ -39,10 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
 
         if (hoursSinceCreation > 24) {
-          const { count, error } = await client
-            .from('user_companies')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+          const res = await withTimeout(
+            client
+              .from('user_companies')
+              .select('*', { count: 'exact', head: true })
+              .eq('user_id', user.id),
+            6000
+          );
+          if (!res) return false;
+          const { count, error } = res as any;
 
           if (!error && count === 0) {
             return true; // Is Orphan
@@ -52,10 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
 
       if (HAS_SECONDARY_PROJECT) {
-        const { data: { session: secSession } } = await supabaseTatica.auth.getSession();
+        const secSessionRes = await withTimeout(supabaseTatica.auth.getSession(), 6000);
+        const secSession = (secSessionRes as any)?.data?.session;
 
         if (secSession) {
-          const { data: { user: validUser }, error: userError } = await supabaseTatica.auth.getUser();
+          const secUserRes = await withTimeout(supabaseTatica.auth.getUser(), 6000);
+          const validUser = (secUserRes as any)?.data?.user as User | undefined;
+          const userError = (secUserRes as any)?.error;
 
           if (validUser && !userError) {
             const isOrphan = await checkOrphan(supabaseTatica, validUser);
@@ -79,10 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const { data: { session: mainSession } } = await supabase.auth.getSession();
+      const mainSessionRes = await withTimeout(supabase.auth.getSession(), 6000);
+      const mainSession = (mainSessionRes as any)?.data?.session;
 
       if (mainSession) {
-        const { data: { user: validUser }, error: userError } = await supabase.auth.getUser();
+        const mainUserRes = await withTimeout(supabase.auth.getUser(), 6000);
+        const validUser = (mainUserRes as any)?.data?.user as User | undefined;
+        const userError = (mainUserRes as any)?.error;
 
         if (validUser && !userError) {
           const isOrphan = await checkOrphan(supabase, validUser);
@@ -124,10 +149,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
 
       if (hoursSinceCreation > 24) {
-        const { count, error } = await client
-          .from('user_companies')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
+        const res = await withTimeout(
+          client
+            .from('user_companies')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          6000
+        );
+        if (!res) return true;
+        const { count, error } = res as any;
 
         if (!error && count === 0) {
           return false; // Access Denied
@@ -144,26 +174,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (session) {
           // Validate user on change
-          const { data: { user: validUser }, error } = await supabase.auth.getUser();
-          if (error || !validUser) {
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            return;
-          }
+          const mainUserRes = await withTimeout(supabase.auth.getUser(), 6000);
+          const validUser = (mainUserRes as any)?.data?.user as User | undefined;
+          const error = (mainUserRes as any)?.error;
 
           // ORPHAN CHECK MAIN
-          const hasAccess = await validateUserAccess(supabase, validUser);
-          if (!hasAccess) {
-            console.warn("User is orphan on Main DB. Blocking.");
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            return;
+          if (validUser && !error) {
+            const hasAccess = await validateUserAccess(supabase, validUser);
+            if (!hasAccess) {
+              console.warn("User is orphan on Main DB. Blocking.");
+              await supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+              return;
+            }
           }
 
           setSession(session);
-          setUser(validUser);
+          setUser(validUser || session.user);
           setActiveClient(supabase);
           isUsingSecondaryRef.current = false;
           setIsUsingSecondary(false);
@@ -180,25 +208,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const secSub = HAS_SECONDARY_PROJECT
       ? supabaseTatica.auth.onAuthStateChange(async (_event, session) => {
         if (session) {
-          const { data: { user: validUser }, error } = await supabaseTatica.auth.getUser();
-          if (error || !validUser) {
-            await supabaseTatica.auth.signOut();
-            setSession(null);
-            setUser(null);
-            return;
-          }
+          const secUserRes = await withTimeout(supabaseTatica.auth.getUser(), 6000);
+          const validUser = (secUserRes as any)?.data?.user as User | undefined;
+          const error = (secUserRes as any)?.error;
 
-          const hasAccess = await validateUserAccess(supabaseTatica, validUser);
-          if (!hasAccess) {
-            await supabaseTatica.auth.signOut();
-            setSession(null);
-            setUser(null);
-            return;
+          if (validUser && !error) {
+            const hasAccess = await validateUserAccess(supabaseTatica, validUser);
+            if (!hasAccess) {
+              await supabaseTatica.auth.signOut();
+              setSession(null);
+              setUser(null);
+              return;
+            }
           }
 
           preferSecondaryRef.current = true;
           setSession(session);
-          setUser(validUser);
+          setUser(validUser || session.user);
           setActiveClient(supabaseTatica);
           isUsingSecondaryRef.current = true;
           setIsUsingSecondary(true);

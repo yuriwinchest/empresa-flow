@@ -63,6 +63,7 @@ export default function Auth() {
   const { user, signIn, signUp, loading, activeClient } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [blockUi, setBlockUi] = useState(true);
 
   // Form states
   const [loginEmail, setLoginEmail] = useState("");
@@ -85,6 +86,11 @@ export default function Auth() {
       navigate("/dashboard");
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setBlockUi(false), 2000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const handleForgotPassword = async () => {
     setIsLoading(true);
@@ -199,7 +205,7 @@ export default function Auth() {
     }
   };
 
-  if (loading) {
+  if (loading && blockUi) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-sidebar">
         <div className="animate-pulse text-sidebar-foreground">Carregando...</div>

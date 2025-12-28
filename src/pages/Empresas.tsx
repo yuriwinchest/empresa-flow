@@ -30,7 +30,7 @@ import { logDeletion } from "@/lib/audit";
 
 export default function Empresas() {
     const { user, activeClient } = useAuth();
-    const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useCompanies(user?.id);
+    const { companies, isLoading, error: companiesError, createCompany, updateCompany, deleteCompany } = useCompanies(user?.id);
 
     // UI State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -161,7 +161,7 @@ export default function Empresas() {
             console.error(error);
         }
     };
-    
+
     const handleDelete = async (company: Company) => {
         const ok = window.confirm(`Excluir a empresa "${company.razao_social}"? Esta ação não pode ser desfeita.`);
         if (!ok) return;
@@ -492,7 +492,15 @@ export default function Empresas() {
                                 <div className="animate-spin h-10 w-10 border-4 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
                                 <p className="font-bold text-slate-500">Sincronizando empresas...</p>
                             </div>
-                        ) : companies?.length === 0 ? (
+                        ) : companiesError ? (
+                            <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4">
+                                <Building2 className="h-16 w-16 text-slate-100" />
+                                <p className="text-lg font-medium">Não foi possível carregar as empresas.</p>
+                                <Button onClick={() => window.location.reload()} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 font-bold">
+                                    Tentar novamente
+                                </Button>
+                            </div>
+                        ) : !companies || companies.length === 0 ? (
                             <div className="text-center py-20 text-muted-foreground flex flex-col items-center gap-4">
                                 <Building2 className="h-16 w-16 text-slate-100" />
                                 <p className="text-lg font-medium">Nenhuma empresa encontrada.</p>

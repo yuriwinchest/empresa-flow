@@ -129,7 +129,13 @@ export default function Clientes() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {isLoading ? (
+                                {!selectedCompany?.id ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                            Selecione uma empresa para visualizar os clientes.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : isLoading ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             Carregando clientes...
