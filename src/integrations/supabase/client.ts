@@ -10,6 +10,17 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const SUPABASE_TATICA_URL = import.meta.env.VITE_SUPABASE_TATICA_URL;
 const SUPABASE_TATICA_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY;
 
+const missingMainEnv: string[] = [];
+if (!SUPABASE_URL) missingMainEnv.push('VITE_SUPABASE_URL');
+if (!SUPABASE_PUBLISHABLE_KEY) missingMainEnv.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+if (missingMainEnv.length) {
+  throw new Error(
+    `Configuração Supabase ausente (${missingMainEnv.join(
+      ', '
+    )}). Na Vercel, configure essas env vars e faça redeploy.`
+  );
+}
+
 // Default client (for backward compatibility and current app usage)
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
@@ -25,11 +36,11 @@ const hasSecondaryProject =
 
 export const supabaseTatica = hasSecondaryProject
   ? createClient<Database>(SUPABASE_TATICA_URL, SUPABASE_TATICA_PUBLISHABLE_KEY, {
-      auth: {
-        storage: localStorage,
-        persistSession: true,
-        autoRefreshToken: true,
-        storageKey: 'sb-tatica-auth-token',
-      }
-    })
+    auth: {
+      storage: localStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'sb-tatica-auth-token',
+    }
+  })
   : supabase;
