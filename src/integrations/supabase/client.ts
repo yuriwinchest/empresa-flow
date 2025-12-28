@@ -5,19 +5,19 @@ import type { Database } from './types';
 // Main Connection (Old/Default)
 const SUPABASE_URL = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY =
-  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   undefined;
 
 // Secondary Connection (Tatica/New)
 const SUPABASE_TATICA_URL = import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_URL || import.meta.env.VITE_SUPABASE_TATICA_URL;
 const SUPABASE_TATICA_KEY =
-  import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_PUBLISHABLE_KEY ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_TATICA_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_TATICA_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY ||
   undefined;
 
 const missingMainEnv: string[] = [];

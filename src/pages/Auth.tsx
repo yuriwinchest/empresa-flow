@@ -34,7 +34,8 @@ const resetSchema = z.object({
 const toPtBrAuthError = (message: string) => {
   const msg = (message || "").toLowerCase();
 
-  if (msg.includes("invalid login credentials")) return "Email ou senha incorretos";
+  if (msg.includes("invalid login credentials"))
+    return "Email ou senha incorretos. Se não lembrar, clique em “Esqueci minha senha”.";
   if (msg.includes("email not confirmed"))
     return "Email ainda não confirmado. Verifique sua caixa de entrada ou spam.";
   if (msg.includes("user not found")) return "Usuário não encontrado";
