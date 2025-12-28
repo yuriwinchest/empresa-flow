@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CompanyProvider } from "@/contexts/CompanyContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CompanyDashboard from "./pages/CompanyDashboard";
@@ -30,6 +31,36 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const RequireAuth = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sidebar">
+        <div className="animate-pulse text-sidebar-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/auth" replace />;
+
+  return <Outlet />;
+};
+
+const RootRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sidebar">
+        <div className="animate-pulse text-sidebar-foreground">Carregando...</div>
+      </div>
+    );
+  }
+
+  return <Navigate to={user ? "/dashboard" : "/auth"} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -44,29 +75,31 @@ const App = () => (
             }}
           >
             <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/:id" element={<CompanyDashboard />} />
-              <Route path="/financeiro" element={<Financeiro />} />
-              <Route path="/empresas" element={<Empresas />} />
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/fornecedores" element={<Fornecedores />} />
-              <Route path="/movimentacoes" element={<Movimentacoes />} />
-              <Route path="/movimentacoes/*" element={<Movimentacoes />} />
-              <Route path="/categorias" element={<Categorias />} />
-              <Route path="/contas-bancarias" element={<ContasBancarias />} />
-              <Route path="/contas-pagar" element={<ContasPagar />} />
-              <Route path="/contas-receber" element={<ContasReceber />} />
-              <Route path="/conciliacao" element={<Conciliacao />} />
-              <Route path="/relatorios" element={<Relatorios />} />
-              <Route path="/configuracoes" element={<Configuracoes />} />
-              <Route path="/crm" element={<CRM />} />
-              <Route path="/operacional" element={<ProdutosDepartamentos />} />
-              <Route path="/recibos" element={<Recibos />} />
-              <Route path="/importacao-omie" element={<ImportacaoOmie />} />
-              <Route path="/import-data" element={<ImportData />} />
-              <Route path="/ajuda" element={<Ajuda />} />
+              <Route element={<RequireAuth />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/:id" element={<CompanyDashboard />} />
+                <Route path="/financeiro" element={<Financeiro />} />
+                <Route path="/empresas" element={<Empresas />} />
+                <Route path="/clientes" element={<Clientes />} />
+                <Route path="/fornecedores" element={<Fornecedores />} />
+                <Route path="/movimentacoes" element={<Movimentacoes />} />
+                <Route path="/movimentacoes/*" element={<Movimentacoes />} />
+                <Route path="/categorias" element={<Categorias />} />
+                <Route path="/contas-bancarias" element={<ContasBancarias />} />
+                <Route path="/contas-pagar" element={<ContasPagar />} />
+                <Route path="/contas-receber" element={<ContasReceber />} />
+                <Route path="/conciliacao" element={<Conciliacao />} />
+                <Route path="/relatorios" element={<Relatorios />} />
+                <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/crm" element={<CRM />} />
+                <Route path="/operacional" element={<ProdutosDepartamentos />} />
+                <Route path="/recibos" element={<Recibos />} />
+                <Route path="/importacao-omie" element={<ImportacaoOmie />} />
+                <Route path="/import-data" element={<ImportData />} />
+                <Route path="/ajuda" element={<Ajuda />} />
+              </Route>
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
