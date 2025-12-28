@@ -3,16 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Main Connection (Old/Default)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 // Secondary Connection (Tatica/New)
 const SUPABASE_TATICA_URL = import.meta.env.VITE_SUPABASE_TATICA_URL;
 const SUPABASE_TATICA_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_TATICA_PUBLISHABLE_KEY;
 
 const missingMainEnv: string[] = [];
-if (!SUPABASE_URL) missingMainEnv.push('VITE_SUPABASE_URL');
-if (!SUPABASE_PUBLISHABLE_KEY) missingMainEnv.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+if (!SUPABASE_URL) missingMainEnv.push('VITE_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_URL');
+if (!SUPABASE_PUBLISHABLE_KEY)
+  missingMainEnv.push('VITE_SUPABASE_PUBLISHABLE_KEY ou NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
 if (missingMainEnv.length) {
   throw new Error(
     `Configuração Supabase ausente (${missingMainEnv.join(
