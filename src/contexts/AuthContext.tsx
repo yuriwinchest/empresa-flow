@@ -108,7 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    initAuth();
+    const timeoutId = window.setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
+    initAuth().catch((err) => {
+      console.error(err);
+      setLoading(false);
+    });
 
     // Helper for Orphan Check (redefined for scope or could be moved out)
     const validateUserAccess = async (client: SupabaseClient, user: User) => {
@@ -200,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       : null;
 
     return () => {
+      window.clearTimeout(timeoutId);
       mainSub.unsubscribe();
       secSub?.unsubscribe();
     };
