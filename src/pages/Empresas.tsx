@@ -881,7 +881,7 @@ export default function Empresas() {
 
     return (
         <AppLayout title="Empresas">
-            <div className="space-y-6 animate-fade-in">
+            <div className="w-full space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center">
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight text-slate-800">Empresas</h2>
@@ -896,10 +896,10 @@ export default function Empresas() {
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 border-none shadow-2xl">
+                    <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-y-auto p-0 border-none shadow-2xl">
                         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg overflow-hidden">
                             {/* Cabeçalho do Formulário (Estilo Unificado) */}
-                            <div className="flex gap-6 items-start bg-slate-50 p-6 border-b border-slate-200">
+                            <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 p-6 border-b border-slate-200">
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-slate-100 shadow-sm overflow-hidden p-1">
                                         {formData.logo_url ? (
@@ -911,8 +911,8 @@ export default function Empresas() {
                                     <button type="button" className="text-xs text-blue-600 font-semibold hover:underline">Alterar Logotipo</button>
                                 </div>
 
-                                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 pt-1">
-                                    <div className="md:col-span-3 space-y-1">
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 pt-1">
+                                    <div className="lg:col-span-3 space-y-1">
                                         <div className="flex justify-between items-center">
                                             <Label className="text-slate-600 text-[10px] font-bold uppercase tracking-wider">Razão Social / Nome da Matriz</Label>
                                         </div>
@@ -956,7 +956,7 @@ export default function Empresas() {
                                         />
                                     </div>
 
-                                    <div className="md:col-span-2 space-y-1">
+                                    <div className="lg:col-span-2 space-y-1">
                                         <Label className="text-slate-600 text-[10px] font-bold uppercase tracking-wider">Nome de Exibição / Fantasia</Label>
                                         <Input
                                             value={formData.nome_fantasia || ""}
@@ -988,7 +988,7 @@ export default function Empresas() {
 
                             <div className="px-6">
                                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                                    <TabsList className="mb-4 w-full justify-start border-b rounded-none h-auto p-0 bg-transparent space-x-6">
+                                    <TabsList className="mb-4 w-full justify-start border-b rounded-none h-auto p-0 bg-transparent flex flex-wrap gap-x-6 gap-y-2">
                                         <TabsTrigger value="geral" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Dados Fiscais</TabsTrigger>
                                         <TabsTrigger value="endereco" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Endereço</TabsTrigger>
                                         <TabsTrigger value="contato" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Comunicação</TabsTrigger>
@@ -1526,7 +1526,7 @@ export default function Empresas() {
                     </DialogContent>
                 </Dialog>
 
-                <Card className="border-none shadow-xl rounded-xl overflow-hidden bg-white">
+                <Card className="w-full border-none shadow-xl rounded-xl overflow-hidden bg-white">
                     <CardHeader className="bg-slate-50/70 border-b p-6">
                         <CardTitle className="flex items-center gap-3 text-2xl font-black text-slate-800 tracking-tight">
                             <div className="p-2 bg-green-100 rounded-lg">
@@ -1556,62 +1556,64 @@ export default function Empresas() {
                                 <Button onClick={() => setIsDialogOpen(true)} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 font-bold">Cadastrar Minha Primeira Empresa</Button>
                             </div>
                         ) : (
-                            <Table>
-                                <TableHeader className="bg-slate-50/50">
-                                    <TableRow className="border-b border-slate-100">
-                                        <TableHead className="font-black text-slate-600 text-xs uppercase p-6">Nome / Razão Social</TableHead>
-                                        <TableHead className="font-black text-slate-600 text-xs uppercase">Documento</TableHead>
-                                        <TableHead className="font-black text-slate-600 text-xs uppercase">E-mail de Contato</TableHead>
-                                        <TableHead className="font-black text-slate-600 text-xs uppercase">Localização</TableHead>
-                                        <TableHead className="font-black text-slate-600 text-xs uppercase text-center">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {companies?.map((company) => (
-                                        <TableRow key={company.id} className="group hover:bg-slate-50/80 transition-all border-b border-slate-50">
-                                            <TableCell className="p-6">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-slate-800 text-lg leading-tight group-hover:text-green-700 transition-colors">{company.razao_social}</span>
-                                                    <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{company.nome_fantasia || "-"}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="font-mono text-[11px] bg-slate-50 text-slate-600 border-slate-200">
-                                                    {company.cnpj ? maskCNPJ(company.cnpj) : "N/D"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-sm text-slate-600 font-medium">{company.email || "-"}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                                    <span className="text-sm text-slate-600 font-bold">{company.endereco_cidade || "-"}</span>
-                                                    <span className="text-xs text-slate-400 font-black uppercase">{company.endereco_estado || ""}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleEdit(company)}
-                                                    className="w-10 h-10 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
-                                                >
-                                                    <Pencil className="h-5 w-5" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleDelete(company)}
-                                                    className="w-10 h-10 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
-                                                >
-                                                    <Trash2 className="h-5 w-5" />
-                                                </Button>
-                                            </TableCell>
+                            <div className="w-full overflow-x-auto">
+                                <Table className="min-w-[900px]">
+                                    <TableHeader className="bg-slate-50/50">
+                                        <TableRow className="border-b border-slate-100">
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase p-6">Nome / Razão Social</TableHead>
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase">Documento</TableHead>
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase">E-mail de Contato</TableHead>
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase">Localização</TableHead>
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase text-center">Ações</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {companies?.map((company) => (
+                                            <TableRow key={company.id} className="group hover:bg-slate-50/80 transition-all border-b border-slate-50">
+                                                <TableCell className="p-6">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="font-bold text-slate-800 text-lg leading-tight group-hover:text-green-700 transition-colors">{company.razao_social}</span>
+                                                        <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{company.nome_fantasia || "-"}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="font-mono text-[11px] bg-slate-50 text-slate-600 border-slate-200">
+                                                        {company.cnpj ? maskCNPJ(company.cnpj) : "N/D"}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-sm text-slate-600 font-medium">{company.email || "-"}</span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                                        <span className="text-sm text-slate-600 font-bold">{company.endereco_cidade || "-"}</span>
+                                                        <span className="text-xs text-slate-400 font-black uppercase">{company.endereco_estado || ""}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleEdit(company)}
+                                                        className="w-10 h-10 rounded-xl hover:bg-green-50 hover:text-green-600 transition-all"
+                                                    >
+                                                        <Pencil className="h-5 w-5" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDelete(company)}
+                                                        className="w-10 h-10 rounded-xl hover:bg-red-50 hover:text-red-600 transition-all"
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         )}
                     </CardContent>
                 </Card>

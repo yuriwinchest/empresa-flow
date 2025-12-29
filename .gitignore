@@ -32,3 +32,5 @@ supabase/.temp
 
 # Arquivos locais de backup/modelos
 BECKAP/
+.vercel
+.env*.local
