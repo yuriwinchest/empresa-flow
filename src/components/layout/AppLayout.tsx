@@ -30,7 +30,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       <AppSidebar />
       <SidebarInset>
         <AppHeader title={title} />
-        <main className="flex-1 p-6 overflow-auto">
+        <main id="app-scroll-container" className="flex-1 p-6 overflow-auto">
           {children}
         </main>
       </SidebarInset>
