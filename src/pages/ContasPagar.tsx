@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AccountsPayableSheet } from "@/components/finance/AccountsPayableSheet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
@@ -27,12 +27,28 @@ import { PaymentModal } from "@/components/transactions/PaymentModal";
 export default function ContasPagar() {
     const { selectedCompany } = useCompany();
     const { activeClient, isUsingSecondary, user } = useAuth();
+    const queryClient = useQueryClient();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<AccountsPayable | undefined>(undefined);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [paymentItem, setPaymentItem] = useState<AccountsPayable | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all"); // all, pending, paid
+
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
+    const getStatusLabel = (status: string, dueDate: string) => {
+        const isOverdue = new Date(dueDate) < new Date() && status === "pending";
+        if (status === "paid") return "Pago";
+        if (status === "cancelled") return "Cancelado";
+        if (isOverdue) return "Atrasado";
+        return "Pendente";
+    };
 
     const { data: bills, isLoading, refetch } = useQuery({
         queryKey: ["accounts_payable", selectedCompany?.id, isUsingSecondary],
@@ -65,9 +81,27 @@ export default function ContasPagar() {
     };
 
     const filteredBills = bills?.filter(bill => {
-        const matchesSearch =
-            bill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (bill.supplier?.razao_social || "").toLowerCase().includes(searchTerm.toLowerCase());
+        const needle = normalizeSearch(searchTerm);
+        const statusLabel = getStatusLabel(bill.status, bill.due_date);
+        const formattedDueDate = bill.due_date ? format(new Date(bill.due_date), "dd/MM/yyyy") : "";
+        const formattedAmount = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(bill.amount);
+        const matchesSearch = !needle
+            ? true
+            : normalizeSearch(
+                [
+                    formattedDueDate,
+                    bill.description,
+                    bill.supplier?.razao_social,
+                    bill.supplier?.nome_fantasia,
+                    bill.amount,
+                    formattedAmount,
+                    bill.category?.name,
+                    bill.status,
+                    statusLabel,
+                ]
+                    .filter(Boolean)
+                    .join(" "),
+            ).includes(needle);
 
         const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
 
@@ -244,8 +278,17 @@ export default function ContasPagar() {
                         initialAmount={paymentItem.amount}
                         description={`Pagamento: ${paymentItem.description}`}
                         onSuccess={() => {
-                            // Refetch data
-                            window.location.reload(); // Simple reload or invalidate query
+                            if (!selectedCompany?.id) return;
+                            queryClient.invalidateQueries({
+                                queryKey: ["accounts_payable", selectedCompany.id, isUsingSecondary],
+                            });
+                            queryClient.invalidateQueries({
+                                queryKey: ["bank_accounts", selectedCompany.id, isUsingSecondary],
+                            });
+                            queryClient.invalidateQueries({
+                                queryKey: ["transactions", selectedCompany.id],
+                                exact: false,
+                            });
                         }}
                     />
                 )}

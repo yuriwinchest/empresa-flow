@@ -36,6 +36,13 @@ export default function Movimentacoes() {
         end: format(endOfMonth(new Date()), "yyyy-MM-dd")
     });
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     // Fetch Bank Accounts for filter
     const { data: accounts } = useQuery({
         queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
@@ -79,10 +86,34 @@ export default function Movimentacoes() {
         enabled: !!selectedCompany?.id,
     });
 
-    const filteredTransactions = transactions?.filter(t =>
-        t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (t.category?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTransactions = transactions?.filter((t) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const formattedDate = t.date ? format(new Date(t.date), "dd/MM/yyyy") : "";
+        const amountValue = Number(t.amount || 0);
+        const formattedAmount = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountValue);
+        const numberAmount = new Intl.NumberFormat("pt-BR").format(amountValue);
+        const amountRaw = String(amountValue);
+        const amountComma = amountRaw.replace(".", ",");
+        const typeLabel = t.type === "credit" ? "Entrada" : t.type === "debit" ? "Saída" : t.type;
+        return normalizeSearch(
+            [
+                formattedDate,
+                t.description,
+                t.category?.name,
+                t.bank_account?.name,
+                t.type,
+                typeLabel,
+                amountValue,
+                formattedAmount,
+                numberAmount,
+                amountRaw,
+                amountComma,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     const totalIn = filteredTransactions
         ?.filter(t => t.type === 'credit')

@@ -31,6 +31,13 @@ export default function Clientes() {
     const { toast } = useToast();
     const [searchParams, setSearchParams] = useSearchParams();
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     const { data: clients, isLoading, refetch } = useQuery({
         queryKey: ["clients", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
@@ -94,11 +101,33 @@ export default function Clientes() {
             });
         }
     };
-    const filteredClients = clients?.filter(client =>
-        client.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (client.nome_fantasia && client.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (client.cpf_cnpj && client.cpf_cnpj.includes(searchTerm))
-    );
+    const filteredClients = clients?.filter((client) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+
+        const doc = client.cpf_cnpj || "";
+        const maskedDoc = doc ? (doc.length > 11 ? maskCNPJ(doc) : maskCPF(doc)) : "";
+        const phone = client.telefone || "";
+        const cell = client.celular || "";
+        const maskedPhone = phone ? maskPhone(phone) : "";
+        const maskedCell = cell ? maskPhone(cell) : "";
+
+        return normalizeSearch(
+            [
+                client.razao_social,
+                client.nome_fantasia,
+                doc,
+                maskedDoc,
+                client.email,
+                phone,
+                cell,
+                maskedPhone,
+                maskedCell,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="Clientes">

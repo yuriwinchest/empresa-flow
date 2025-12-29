@@ -28,6 +28,13 @@ export default function Categorias() {
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     const { data: categories, isLoading } = useQuery({
         queryKey: ["categories", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
@@ -71,9 +78,14 @@ export default function Categorias() {
             }
         }
     };
-    const filteredCategories = categories?.filter(cat =>
-        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCategories = categories?.filter((cat) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const typeLabel = cat.type === "income" ? "Receita" : "Despesa";
+        return normalizeSearch(
+            [cat.name, cat.type, typeLabel, cat.description].filter(Boolean).join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="Categorias">

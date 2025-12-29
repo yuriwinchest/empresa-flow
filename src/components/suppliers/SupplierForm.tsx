@@ -25,7 +25,7 @@ import { maskCNPJ, maskCPF, maskPhone, maskCEP, unmask } from "@/utils/masks";
 
 import { useCompany } from "@/contexts/CompanyContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Phone, Mail, Globe, Landmark, FileText, Settings, Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -81,6 +81,10 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
     const { activeClient } = useAuth();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("endereco");
+    const [isSefazLookupLoading, setIsSefazLookupLoading] = useState(false);
+    const [cnaeDescricao, setCnaeDescricao] = useState("");
+    const [cnaeOpcoes, setCnaeOpcoes] = useState<Array<{ codigo: string; descricao: string; origem: "principal" | "secundario" }>>([]);
+    const lastAutoLookupDocRef = useRef<string | null>(null);
 
     const form = useForm<SupplierFormValues>({
         resolver: zodResolver(supplierFormSchema),
@@ -126,6 +130,9 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
         if (initialData) {
             form.reset({
                 ...initialData,
+                optante_simples: Boolean(initialData.optante_simples),
+                produtor_rural: Boolean(initialData.produtor_rural),
+                contribuinte: initialData.contribuinte ?? true,
                 cep: maskCEP(initialData.endereco_cep || ""),
                 cpf_cnpj: initialData.tipo_pessoa === "PJ" ? maskCNPJ(initialData.cpf_cnpj || "") : maskCPF(initialData.cpf_cnpj || ""),
                 telefone: maskPhone(initialData.telefone || ""),
@@ -134,6 +141,8 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                 fax: maskPhone(initialData.fax || ""),
                 dados_bancarios_titular_cpf_cnpj: initialData.dados_bancarios_titular_cpf_cnpj?.length > 11 ? maskCNPJ(initialData.dados_bancarios_titular_cpf_cnpj) : maskCPF(initialData.dados_bancarios_titular_cpf_cnpj || ""),
             });
+            setCnaeDescricao("");
+            setCnaeOpcoes([]);
         }
     }, [initialData, form]);
 
@@ -160,6 +169,32 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                 console.error("Erro ao buscar CEP:", error);
             }
         }
+    };
+
+    const handleSearchAddress = () => {
+        const values = form.getValues();
+        const parts = [
+            values.endereco_logradouro,
+            values.endereco_numero,
+            values.endereco_bairro,
+            values.endereco_cidade,
+            values.endereco_estado,
+            values.cep,
+        ]
+            .map((v) => (typeof v === "string" ? v.trim() : ""))
+            .filter(Boolean);
+
+        if (parts.length === 0) {
+            toast({
+                title: "Endereço vazio",
+                description: "Preencha algum dado de endereço para pesquisar.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const query = encodeURIComponent(parts.join(" "));
+        window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank", "noopener,noreferrer");
     };
 
     const onSubmit = async (values: SupplierFormValues) => {
@@ -220,6 +255,101 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
         }
     };
 
+    const handleLookupSefaz = async () => {
+        const tipo = form.getValues("tipo_pessoa");
+        const doc = unmask(form.getValues("cpf_cnpj") || "");
+
+        if (tipo !== "PJ") {
+            toast({
+                title: "Consulta indisponível",
+                description: "Consulta automática disponível apenas para CNPJ (Pessoa Jurídica).",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (doc.length !== 14) {
+            toast({
+                title: "CNPJ inválido",
+                description: "Informe um CNPJ válido para consultar.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsSefazLookupLoading(true);
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${doc}`);
+            if (!response.ok) {
+                toast({
+                    title: "Falha na consulta",
+                    description: "Não foi possível consultar este CNPJ.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            const data = await response.json();
+            const current = form.getValues();
+            const cnaePrincipalCodigo = data?.cnae_fiscal ? String(data.cnae_fiscal) : "";
+            const cnaePrincipalDescricao = data?.cnae_fiscal_descricao ? String(data.cnae_fiscal_descricao) : "";
+            const secundarias = Array.isArray(data?.cnaes_secundarios) ? data.cnaes_secundarios : [];
+            const opcoes = [
+                ...(cnaePrincipalCodigo && cnaePrincipalDescricao
+                    ? [{ codigo: cnaePrincipalCodigo, descricao: cnaePrincipalDescricao, origem: "principal" as const }]
+                    : []),
+                ...secundarias
+                    .filter((c: any) => c && c.codigo && c.descricao)
+                    .map((c: any) => ({ codigo: String(c.codigo), descricao: String(c.descricao), origem: "secundario" as const })),
+            ];
+            setCnaeOpcoes(opcoes);
+
+            const setIfEmpty = (key: keyof SupplierFormValues, value: unknown) => {
+                const cur = current[key as keyof typeof current];
+                const isEmpty = cur === undefined || cur === null || cur === "" || (typeof cur === "string" && cur.trim() === "");
+                if (isEmpty && value !== undefined && value !== null) {
+                    form.setValue(key as any, value as any, { shouldDirty: true });
+                }
+            };
+
+            setIfEmpty("razao_social", (data?.razao_social as any) || "");
+            setIfEmpty("nome_fantasia", (data?.nome_fantasia as any) || "");
+            setIfEmpty("email", (data?.email as any) || "");
+            setIfEmpty("telefone", maskPhone((data?.ddd_telefone_1 as any) || (data?.telefone as any) || ""));
+            setIfEmpty("cep", maskCEP((data?.cep as any) || ""));
+            setIfEmpty("endereco_logradouro", (data?.logradouro as any) || "");
+            setIfEmpty("endereco_numero", (data?.numero as any) || "");
+            setIfEmpty("endereco_complemento", (data?.complemento as any) || "");
+            setIfEmpty("endereco_bairro", (data?.bairro as any) || "");
+            setIfEmpty("endereco_cidade", (data?.municipio as any) || "");
+            setIfEmpty("endereco_estado", (data?.uf as any) || "");
+            setIfEmpty("cnae", cnaePrincipalCodigo);
+            setCnaeDescricao((prev) => {
+                if (prev) return prev;
+                const escolhido = current.cnae && String(current.cnae).trim() ? String(current.cnae) : cnaePrincipalCodigo;
+                const found = opcoes.find((o) => o.codigo === escolhido);
+                return found?.descricao || cnaePrincipalDescricao || "";
+            });
+
+            if (data?.opcao_pelo_simples && !current.optante_simples) {
+                form.setValue("optante_simples", true, { shouldDirty: true });
+            }
+
+            toast({
+                title: "Consulta concluída",
+                description: "Dados preenchidos a partir do CNPJ.",
+            });
+        } catch {
+            toast({
+                title: "Erro na consulta",
+                description: "Erro ao consultar CNPJ.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSefazLookupLoading(false);
+        }
+    };
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -259,7 +389,14 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                     <FormItem>
                                         <div className="flex justify-between items-center">
                                             <FormLabel className="text-slate-600 text-xs font-bold uppercase">CNPJ / CPF</FormLabel>
-                                            <button type="button" className="text-[10px] text-green-600 flex items-center gap-1"><Globe className="w-3 h-3" /> Pesquisar SEFAZ</button>
+                                            <button
+                                                type="button"
+                                                className="text-[10px] text-green-600 flex items-center gap-1 disabled:opacity-60"
+                                                onClick={handleLookupSefaz}
+                                                disabled={isSefazLookupLoading}
+                                            >
+                                                <Globe className="w-3 h-3" /> {isSefazLookupLoading ? "Consultando..." : "Pesquisar SEFAZ"}
+                                            </button>
                                         </div>
                                         <FormControl>
                                             <Input
@@ -268,7 +405,19 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                                 onChange={(e) => {
                                                     const val = e.target.value;
                                                     const tipo = form.getValues("tipo_pessoa");
-                                                    field.onChange(tipo === "PJ" ? maskCNPJ(val) : maskCPF(val));
+                                                    const masked = tipo === "PJ" ? maskCNPJ(val) : maskCPF(val);
+                                                    field.onChange(masked);
+                                                    lastAutoLookupDocRef.current = null;
+                                                }}
+                                                onBlur={(e) => {
+                                                    field.onBlur();
+                                                    const tipo = form.getValues("tipo_pessoa");
+                                                    const doc = unmask(e.target.value || "");
+                                                    const razao = form.getValues("razao_social") || "";
+                                                    if (tipo === "PJ" && doc.length === 14 && razao.trim() === "" && lastAutoLookupDocRef.current !== doc) {
+                                                        lastAutoLookupDocRef.current = doc;
+                                                        handleLookupSefaz();
+                                                    }
                                                 }}
                                             />
                                         </FormControl>
@@ -353,7 +502,13 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                         <FormItem>
                                             <div className="flex justify-between">
                                                 <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">Endereço</FormLabel>
-                                                <button type="button" className="text-[10px] text-green-600 flex items-center gap-1"><Globe className="w-3 h-3" /> Pesquisar Endereço</button>
+                                                <button
+                                                    type="button"
+                                                    className="text-[10px] text-green-600 flex items-center gap-1"
+                                                    onClick={handleSearchAddress}
+                                                >
+                                                    <Globe className="w-3 h-3" /> Pesquisar Endereço
+                                                </button>
                                             </div>
                                             <FormControl>
                                                 <Input className="h-9 border-slate-300" {...field} />
@@ -696,14 +851,60 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                 )}
                             />
                             <div className="flex flex-col gap-2 pt-4">
-                                <div className="flex items-center gap-2">
-                                    <Checkbox id="simples_sup" className="border-slate-400" />
-                                    <label htmlFor="simples_sup" className="text-xs text-slate-700">Optante do Simples Nacional</label>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Checkbox id="rural_sup" className="border-slate-400" />
-                                    <label htmlFor="rural_sup" className="text-xs text-slate-700">É um Produtor Rural</label>
-                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="optante_simples"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                                                    className="border-slate-400"
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="text-xs text-slate-700 font-normal">
+                                                Optante do Simples Nacional
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="produtor_rural"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                                                    className="border-slate-400"
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="text-xs text-slate-700 font-normal">
+                                                É um Produtor Rural
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="contribuinte"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                                                    className="border-slate-400"
+                                                />
+                                            </FormControl>
+                                            <FormLabel className="text-xs text-slate-700 font-normal">
+                                                Contribuinte
+                                            </FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
 
                             <FormField
@@ -734,12 +935,46 @@ export function SupplierForm({ onSuccess, initialData }: SupplierFormProps) {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel className="text-slate-500 text-[10px] font-bold uppercase">CNAE Principal</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Input className="h-9 border-slate-300 pr-8" {...field} />
-                                                    <Search className="w-4 h-4 text-slate-400 absolute right-2 top-2.5" />
-                                                </div>
-                                            </FormControl>
+                                            {cnaeOpcoes.length > 0 ? (
+                                                <Select
+                                                    onValueChange={(value) => {
+                                                        field.onChange(value);
+                                                        const found = cnaeOpcoes.find((o) => o.codigo === value);
+                                                        setCnaeDescricao(found?.descricao || "");
+                                                    }}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger className="h-9 border-slate-300">
+                                                            <SelectValue placeholder="Selecione" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {cnaeOpcoes.map((opt) => (
+                                                            <SelectItem key={`${opt.origem}-${opt.codigo}`} value={opt.codigo}>
+                                                                {opt.codigo} - {opt.descricao}{opt.origem === "principal" ? " (principal)" : ""}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Input
+                                                            className="h-9 border-slate-300 pr-8"
+                                                            {...field}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                if (cnaeDescricao) setCnaeDescricao("");
+                                                            }}
+                                                        />
+                                                        <Search className="w-4 h-4 text-slate-400 absolute right-2 top-2.5" />
+                                                    </div>
+                                                </FormControl>
+                                            )}
+                                            {cnaeDescricao ? (
+                                                <div className="text-[11px] text-slate-500 mt-1">{cnaeDescricao}</div>
+                                            ) : null}
                                         </FormItem>
                                     )}
                                 />

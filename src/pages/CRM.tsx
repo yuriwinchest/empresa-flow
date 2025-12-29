@@ -24,6 +24,13 @@ export default function CRM() {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState("contacts");
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     // Fetch Contacts
     const { data: contacts, isLoading: contactsLoading } = useQuery({
         queryKey: ["crm_contacts", selectedCompany?.id, isUsingSecondary],
@@ -72,23 +79,65 @@ export default function CRM() {
         enabled: !!selectedCompany?.id && activeTab === "leads",
     });
 
-    const filteredContacts = contacts?.filter(c =>
-        `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.account_name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredContacts = contacts?.filter((c) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const location = c.city ? `${c.city}/${c.state || ""}` : "";
+        return normalizeSearch(
+            [
+                c.first_name,
+                c.last_name,
+                `${c.first_name || ""} ${c.last_name || ""}`.trim(),
+                c.account_name,
+                c.position,
+                c.email,
+                c.cell_1,
+                c.phone,
+                location,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
-    const filteredOpportunities = opportunities?.filter(o =>
-        (o.account_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (o.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (o.solution || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOpportunities = opportunities?.filter((o) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const totalValue = Number(o.total_value || 0);
+        const formattedValue = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalValue);
+        const numberValue = new Intl.NumberFormat("pt-BR").format(totalValue);
+        const valueRaw = String(totalValue);
+        const valueComma = valueRaw.replace(".", ",");
+        const expected = o.expected_month && o.expected_year ? `${o.expected_month}/${o.expected_year}` : "";
+        return normalizeSearch(
+            [
+                o.account_name,
+                o.solution,
+                o.description,
+                o.phase,
+                o.status,
+                expected,
+                totalValue,
+                formattedValue,
+                numberValue,
+                valueRaw,
+                valueComma,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
-    const filteredLeads = leads?.filter(l =>
-        (l.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (l.company_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (l.email || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredLeads = leads?.filter((l) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const createdAt = l.created_at ? format(new Date(l.created_at), "dd/MM/yyyy") : "";
+        return normalizeSearch(
+            [l.name, l.company_name, l.origin, l.status, l.email, createdAt]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="CRM">

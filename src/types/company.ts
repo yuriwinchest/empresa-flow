@@ -6,6 +6,10 @@ export interface Company {
     inscricao_estadual: string | null;
     inscricao_municipal: string | null;
     cnae: string | null;
+    activity_profile?: "servico" | "comercio" | "mista";
+    enable_nfse?: boolean;
+    enable_nfe?: boolean;
+    enable_nfce?: boolean;
     natureza_juridica: string | null;
     regime_tributario: string | null;
     email: string | null;

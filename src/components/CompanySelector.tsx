@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useState } from "react";
+import { maskCNPJ } from "@/utils/masks";
 
 export function CompanySelector() {
   const { companies, selectedCompany, setSelectedCompany, loading } = useCompany();
@@ -66,7 +67,14 @@ export function CompanySelector() {
               {companies.map((company) => (
                 <CommandItem
                   key={company.id}
-                  value={company.razao_social}
+                  value={[
+                    company.razao_social,
+                    company.nome_fantasia,
+                    company.cnpj,
+                    company.cnpj ? maskCNPJ(company.cnpj) : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   onSelect={() => {
                     setSelectedCompany(company);
                     setOpen(false);
@@ -84,7 +92,7 @@ export function CompanySelector() {
                     </span>
                     {company.cnpj && (
                       <span className="text-xs text-muted-foreground">
-                        {company.cnpj}
+                        {maskCNPJ(company.cnpj)}
                       </span>
                     )}
                   </div>

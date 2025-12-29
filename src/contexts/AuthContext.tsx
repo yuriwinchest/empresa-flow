@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { User, Session, SupabaseClient } from "@supabase/supabase-js";
 import { supabase, supabaseTatica } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const HAS_SECONDARY_PROJECT = supabaseTatica !== supabase;
 
@@ -42,33 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    const applyAuthState = (params: {
+      session: Session | null;
+      user: User | null;
+      client: SupabaseClient;
+      usingSecondary: boolean;
+    }) => {
+      setSession(params.session);
+      setUser(params.user);
+      setActiveClient(params.client);
+      isUsingSecondaryRef.current = params.usingSecondary;
+      setIsUsingSecondary(params.usingSecondary);
+      preferSecondaryRef.current = params.usingSecondary;
+    };
+
     // Check sessions for both clients on load
     const initAuth = async () => {
       setLoading(true);
-
-      // Helper for Orphan Check
-      const checkOrphan = async (client: SupabaseClient, user: User) => {
-        const createdAt = new Date(user.created_at);
-        const now = new Date();
-        const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-        if (hoursSinceCreation > 24) {
-          const res = await withTimeout(
-            client
-              .from('user_companies')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id),
-            6000
-          );
-          if (!res) return false;
-          const { count, error } = res as any;
-
-          if (!error && count === 0) {
-            return true; // Is Orphan
-          }
-        }
-        return false;
-      };
 
       if (HAS_SECONDARY_PROJECT) {
         const secSessionRes = await withTimeout(supabaseTatica.auth.getSession(), 6000);
@@ -80,19 +69,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userError = (secUserRes as any)?.error;
 
           if (validUser && !userError) {
-            const isOrphan = await checkOrphan(supabaseTatica, validUser);
-            if (isOrphan) {
-              await supabaseTatica.auth.signOut();
-              setLoading(false);
-              return;
-            }
-
-            setSession(secSession);
-            setUser(validUser);
-            setActiveClient(supabaseTatica);
-            isUsingSecondaryRef.current = true;
-            setIsUsingSecondary(true);
-            preferSecondaryRef.current = true;
+            applyAuthState({
+              session: secSession,
+              user: validUser,
+              client: supabaseTatica,
+              usingSecondary: true,
+            });
             setLoading(false);
             return;
           } else {
@@ -110,26 +92,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userError = (mainUserRes as any)?.error;
 
         if (validUser && !userError) {
-          const isOrphan = await checkOrphan(supabase, validUser);
-          if (isOrphan) {
-            await supabase.auth.signOut();
-            setLoading(false);
-            return;
-          }
-
-          setSession(mainSession);
-          setUser(validUser);
-          setActiveClient(supabase);
-          isUsingSecondaryRef.current = false;
-          setIsUsingSecondary(false);
-          preferSecondaryRef.current = false;
+          applyAuthState({
+            session: mainSession,
+            user: validUser,
+            client: supabase,
+            usingSecondary: false,
+          });
           setLoading(false);
           return;
         } else {
           await supabase.auth.signOut();
         }
       }
-
       setLoading(false);
     };
 
@@ -142,30 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Helper for Orphan Check (redefined for scope or could be moved out)
-    const validateUserAccess = async (client: SupabaseClient, user: User) => {
-      const createdAt = new Date(user.created_at);
-      const now = new Date();
-      const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-      if (hoursSinceCreation > 24) {
-        const res = await withTimeout(
-          client
-            .from('user_companies')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id),
-          6000
-        );
-        if (!res) return true;
-        const { count, error } = res as any;
-
-        if (!error && count === 0) {
-          return false; // Access Denied
-        }
-      }
-      return true; // Access Granted
-    };
-
     // Listen to Main Client Auth Changes
     const { data: { subscription: mainSub } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -173,29 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         if (session) {
-          // Validate user on change
           const mainUserRes = await withTimeout(supabase.auth.getUser(), 6000);
           const validUser = (mainUserRes as any)?.data?.user as User | undefined;
-          const error = (mainUserRes as any)?.error;
-
-          // ORPHAN CHECK MAIN
-          if (validUser && !error) {
-            const hasAccess = await validateUserAccess(supabase, validUser);
-            if (!hasAccess) {
-              console.warn("User is orphan on Main DB. Blocking.");
-              await supabase.auth.signOut();
-              setSession(null);
-              setUser(null);
-              return;
-            }
-          }
-
-          setSession(session);
-          setUser(validUser || session.user);
-          setActiveClient(supabase);
-          isUsingSecondaryRef.current = false;
-          setIsUsingSecondary(false);
-          preferSecondaryRef.current = false;
+          applyAuthState({
+            session,
+            user: validUser || session.user,
+            client: supabase,
+            usingSecondary: false,
+          });
         } else if (!session && !isUsingSecondaryRef.current) {
           // Only clear if we are not actively using the secondary
           setSession(null);
@@ -210,24 +145,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           const secUserRes = await withTimeout(supabaseTatica.auth.getUser(), 6000);
           const validUser = (secUserRes as any)?.data?.user as User | undefined;
-          const error = (secUserRes as any)?.error;
-
-          if (validUser && !error) {
-            const hasAccess = await validateUserAccess(supabaseTatica, validUser);
-            if (!hasAccess) {
-              await supabaseTatica.auth.signOut();
-              setSession(null);
-              setUser(null);
-              return;
-            }
-          }
-
-          preferSecondaryRef.current = true;
-          setSession(session);
-          setUser(validUser || session.user);
-          setActiveClient(supabaseTatica);
-          isUsingSecondaryRef.current = true;
-          setIsUsingSecondary(true);
+          applyAuthState({
+            session,
+            user: validUser || session.user,
+            client: supabaseTatica,
+            usingSecondary: true,
+          });
         }
       }).data.subscription
       : null;
@@ -242,75 +165,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     if (HAS_SECONDARY_PROJECT) {
       const { data: secData, error: secError } = await supabaseTatica.auth.signInWithPassword({ email, password });
-
-      if (!secError && secData.session) {
-        const user = secData.user;
-        if (user) {
-          const createdAt = new Date(user.created_at);
-          const now = new Date();
-          const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-          if (hoursSinceCreation > 24) {
-            const { count, error: countError } = await supabaseTatica
-              .from('user_companies')
-              .select('*', { count: 'exact', head: true })
-              .eq('user_id', user.id);
-
-            if (!countError && count === 0) {
-              await supabaseTatica.auth.signOut();
-              return { error: new Error("Acesso negado: Usuário sem empresas vinculadas.") };
-            }
-          }
-        }
-
-        preferSecondaryRef.current = true;
+      if (!secError && secData.session && secData.user) {
         setSession(secData.session);
         setUser(secData.user);
         setActiveClient(supabaseTatica);
         isUsingSecondaryRef.current = true;
         setIsUsingSecondary(true);
-        toast.info("Conectado ao banco Tatica (Novo).");
+        preferSecondaryRef.current = true;
         return { error: null };
       }
-
-      console.log("Secondary DB login failed, trying main DB...", secError?.message);
     }
 
     const { data: mainData, error: mainError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (!mainError && mainData.session) {
-      // ORPHAN CHECK on SignIn (Main)
-      const user = mainData.user;
-      if (user) {
-        const createdAt = new Date(user.created_at);
-        const now = new Date();
-        const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-
-        if (hoursSinceCreation > 24) {
-          const { count, error: countError } = await supabase
-            .from('user_companies')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id);
-
-          if (!countError && count === 0) {
-            await supabase.auth.signOut();
-            return { error: new Error("Acesso negado: Usuário sem empresas vinculadas.") };
-          }
-        }
-      }
-
-      preferSecondaryRef.current = false;
+    if (!mainError && mainData.session && mainData.user) {
       setSession(mainData.session);
       setUser(mainData.user);
       setActiveClient(supabase);
       isUsingSecondaryRef.current = false;
       setIsUsingSecondary(false);
-      toast.info("Conectado ao banco principal.");
+      preferSecondaryRef.current = false;
       return { error: null };
     }
 
-    // Both failed
-    return { error: mainError };
+    return { error: mainError as any };
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
@@ -321,12 +198,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { full_name: fullName }
-      }
+        data: { full_name: fullName },
+      },
     });
 
     if (error) {
-      const msg = error.message.toLowerCase();
+      const msg = (error.message || "").toLowerCase();
       if (
         msg.includes("already registered") ||
         msg.includes("user already registered") ||
@@ -340,14 +217,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data.session && data.user) {
-      preferSecondaryRef.current = false;
       setSession(data.session);
       setUser(data.user);
       setActiveClient(supabase);
+      isUsingSecondaryRef.current = false;
       setIsUsingSecondary(false);
+      preferSecondaryRef.current = false;
     }
 
-    return { error };
+    return { error: null };
   };
 
   const signOut = async () => {

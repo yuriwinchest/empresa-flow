@@ -23,6 +23,13 @@ export default function ProdutosDepartamentos() {
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState("products");
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     // Fetch Products
     const { data: products, isLoading: productsLoading } = useQuery({
         queryKey: ["products", selectedCompany?.id, isUsingSecondary],
@@ -55,15 +62,40 @@ export default function ProdutosDepartamentos() {
         enabled: !!selectedCompany?.id && activeTab === "departments",
     });
 
-    const filteredProducts = products?.filter(p =>
-        (p.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.code || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.family || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = products?.filter((p) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const statusLabel = p.is_active ? "Ativo" : "Inativo";
+        const priceValue = Number(p.price || 0);
+        const formattedPrice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(priceValue);
+        const numberPrice = new Intl.NumberFormat("pt-BR").format(priceValue);
+        const priceRaw = String(priceValue);
+        const priceComma = priceRaw.replace(".", ",");
+        return normalizeSearch(
+            [
+                p.code,
+                p.description,
+                p.family,
+                p.ncm,
+                p.cest,
+                p.is_active,
+                statusLabel,
+                priceValue,
+                formattedPrice,
+                numberPrice,
+                priceRaw,
+                priceComma,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
-    const filteredDepartments = departments?.filter(d =>
-        (d.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredDepartments = departments?.filter((d) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        return normalizeSearch([d.name].filter(Boolean).join(" ")).includes(needle);
+    });
 
     return (
         <AppLayout title="Operacional">

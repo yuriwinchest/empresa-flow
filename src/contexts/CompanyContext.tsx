@@ -1,13 +1,21 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Company as CompanyRow } from "@/types/company";
 
-export interface Company {
-  id: string;
-  cnpj: string | null;
-  razao_social: string;
-  nome_fantasia: string | null;
-  is_active: boolean;
-}
+export type Company = Pick<
+  CompanyRow,
+  | "id"
+  | "cnpj"
+  | "razao_social"
+  | "nome_fantasia"
+  | "is_active"
+  | "endereco_cidade"
+  | "endereco_estado"
+  | "activity_profile"
+  | "enable_nfse"
+  | "enable_nfe"
+  | "enable_nfce"
+>;
 
 export interface CompanyContextType {
   companies: Company[];
@@ -25,7 +33,8 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchCompanies = async () => {
+  const fetchCompanies = useCallback(async () => {
+    setLoading(true);
     if (!user) {
       setCompanies([]);
       setSelectedCompany(null);
@@ -36,7 +45,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await activeClient
         .from("user_companies")
-        .select("is_default, company:companies(id, cnpj, razao_social, nome_fantasia, is_active)")
+        .select("is_default, company:companies(id, cnpj, razao_social, nome_fantasia, is_active, endereco_cidade, endereco_estado, activity_profile, enable_nfse, enable_nfe, enable_nfce)")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false });
 
@@ -51,9 +60,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
         if (onlyCompanies.length > 0) {
           const defaultCompany = mapped.find((row: any) => row.is_default)?.company || onlyCompanies[0];
-          if (!selectedCompany || !onlyCompanies.some((c) => c.id === selectedCompany.id)) {
-            setSelectedCompany(defaultCompany);
-          }
+          setSelectedCompany((current) => {
+            if (!current || !onlyCompanies.some((c) => c.id === current.id)) return defaultCompany;
+            return current;
+          });
         } else {
           setSelectedCompany(null);
         }
@@ -63,7 +73,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       const { data: companiesData, error: companiesError } = await activeClient
         .from("companies")
-        .select("id, cnpj, razao_social, nome_fantasia, is_active")
+        .select("id, cnpj, razao_social, nome_fantasia, is_active, endereco_cidade, endereco_estado, activity_profile, enable_nfse, enable_nfe, enable_nfce")
         .eq("is_active", true)
         .order("razao_social");
 
@@ -71,8 +81,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
       const mapped = (companiesData || []).filter((c: any) => c && c.is_active) as Company[];
       setCompanies(mapped);
-      if (mapped.length > 0 && (!selectedCompany || !mapped.some((c) => c.id === selectedCompany.id))) {
-        setSelectedCompany(mapped[0]);
+      if (mapped.length > 0) {
+        setSelectedCompany((current) => {
+          if (!current || !mapped.some((c) => c.id === current.id)) return mapped[0];
+          return current;
+        });
       }
     } catch (error) {
       console.error("Error fetching companies:", error);
@@ -81,11 +94,11 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeClient, user]);
 
   useEffect(() => {
     fetchCompanies();
-  }, [user, activeClient]);
+  }, [fetchCompanies]);
 
   const refreshCompanies = async () => {
     await fetchCompanies();

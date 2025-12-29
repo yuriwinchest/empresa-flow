@@ -64,7 +64,6 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
 
-  // Form states
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
@@ -160,11 +159,7 @@ export default function Auth() {
       const { error } = await signIn(validated.email, validated.password);
 
       if (error) {
-        if (error.message.includes("Acesso negado")) {
-          toast.error(error.message);
-        } else {
-          toast.error(toPtBrAuthError(error.message));
-        }
+        toast.error(toPtBrAuthError(error.message));
         return;
       }
 

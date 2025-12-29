@@ -27,6 +27,13 @@ export default function ContasBancarias() {
     const [editingItem, setEditingItem] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     const { data: accounts, isLoading, refetch } = useQuery({
         queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
@@ -70,10 +77,30 @@ export default function ContasBancarias() {
             }
         }
     };
-    const filteredAccounts = accounts?.filter(acc =>
-        acc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (acc.banco || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredAccounts = accounts?.filter((acc) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const agConta = acc.agencia && acc.conta ? `${acc.agencia} / ${acc.conta}${acc.digito ? "-" + acc.digito : ""}` : "";
+        const formattedBalance = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(acc.current_balance ?? 0);
+        const numberBalance = new Intl.NumberFormat("pt-BR").format(acc.current_balance ?? 0);
+        const balanceRaw = String(acc.current_balance ?? "");
+        const balanceComma = balanceRaw.replace(".", ",");
+
+        return normalizeSearch(
+            [
+                acc.name,
+                acc.banco,
+                agConta,
+                acc.current_balance,
+                formattedBalance,
+                numberBalance,
+                balanceRaw,
+                balanceComma,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="Contas Bancárias">

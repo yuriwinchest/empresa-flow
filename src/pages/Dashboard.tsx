@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,16 +36,40 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
+  const normalizeSearch = (value: unknown) =>
+    String(value ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  useEffect(() => {
+    if (!isLoading && user && (companies?.length ?? 0) === 0) {
+      navigate("/empresas?new=true", { replace: true });
+    }
+  }, [companies, isLoading, navigate, user]);
+
   const handleCompanyClick = (company: any) => {
     setSelectedCompany(company);
     navigate(`/dashboard/${company.id}`);
   };
 
-  const filteredCompanies = companies?.filter(company =>
-    company.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (company.nome_fantasia && company.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (company.cnpj && company.cnpj.includes(searchTerm))
-  );
+  const filteredCompanies = companies?.filter((company) => {
+    const needle = normalizeSearch(searchTerm);
+    if (!needle) return true;
+    return normalizeSearch(
+      [
+        company.razao_social,
+        company.nome_fantasia,
+        company.cnpj,
+        company.endereco_cidade,
+        company.endereco_estado,
+        company.email,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    ).includes(needle);
+  });
 
   const tabs = [
     { id: "empresas", label: "Empresas", icon: Building2, color: "text-blue-600", bg: "bg-blue-100", route: "/empresas" },

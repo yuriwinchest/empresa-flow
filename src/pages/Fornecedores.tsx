@@ -29,6 +29,13 @@ export default function Fornecedores() {
     const [searchTerm, setSearchTerm] = useState("");
     const [searchParams, setSearchParams] = useSearchParams();
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     const { data: suppliers, isLoading, refetch } = useQuery({
         queryKey: ["suppliers", selectedCompany?.id, isUsingSecondary],
         queryFn: async () => {
@@ -81,11 +88,33 @@ export default function Fornecedores() {
             }
         }
     };
-    const filteredSuppliers = suppliers?.filter(supplier =>
-        supplier.razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (supplier.nome_fantasia && supplier.nome_fantasia.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (supplier.cpf_cnpj && supplier.cpf_cnpj.includes(searchTerm))
-    );
+    const filteredSuppliers = suppliers?.filter((supplier) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+
+        const doc = supplier.cpf_cnpj || "";
+        const maskedDoc = doc ? (doc.length > 11 ? maskCNPJ(doc) : maskCPF(doc)) : "";
+        const phone = supplier.telefone || "";
+        const cell = supplier.celular || "";
+        const maskedPhone = phone ? maskPhone(phone) : "";
+        const maskedCell = cell ? maskPhone(cell) : "";
+
+        return normalizeSearch(
+            [
+                supplier.razao_social,
+                supplier.nome_fantasia,
+                doc,
+                maskedDoc,
+                supplier.email,
+                phone,
+                cell,
+                maskedPhone,
+                maskedCell,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="Fornecedores">

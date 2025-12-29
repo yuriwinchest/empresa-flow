@@ -22,6 +22,13 @@ export default function Recibos() {
     const { activeClient, isUsingSecondary } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
 
+    const normalizeSearch = (value: unknown) =>
+        String(value ?? "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+
     // Fetch Receipts (represented by credit transactions)
     const { data: receipts, isLoading } = useQuery({
         queryKey: ["receipts", selectedCompany?.id, isUsingSecondary],
@@ -43,10 +50,30 @@ export default function Recibos() {
         enabled: !!selectedCompany?.id,
     });
 
-    const filteredReceipts = receipts?.filter(r =>
-        (r.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.bank_account?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredReceipts = receipts?.filter((r) => {
+        const needle = normalizeSearch(searchTerm);
+        if (!needle) return true;
+        const formattedDate = r.date ? format(new Date(r.date), "dd/MM/yyyy") : "";
+        const amountValue = Number(r.amount || 0);
+        const formattedAmount = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountValue);
+        const numberAmount = new Intl.NumberFormat("pt-BR").format(amountValue);
+        const amountRaw = String(amountValue);
+        const amountComma = amountRaw.replace(".", ",");
+        return normalizeSearch(
+            [
+                formattedDate,
+                r.description,
+                r.bank_account?.name,
+                amountValue,
+                formattedAmount,
+                numberAmount,
+                amountRaw,
+                amountComma,
+            ]
+                .filter(Boolean)
+                .join(" "),
+        ).includes(needle);
+    });
 
     return (
         <AppLayout title="Recibos">

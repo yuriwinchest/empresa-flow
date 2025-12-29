@@ -38,3 +38,32 @@ Este documento registra as melhorias e correções implementadas, bem como os pr
 - Implementar máscaras de input (CPF/CNPJ, Telefone, CEP) no formulário de Empresas para melhor UX.
 - Validar se outros modais (Financeiro) precisam da mesma correção de CSS (`max-h-[90vh]`).
 - Integração da API de CEP para preenchimento automático de endereço.
+
+## 5. Como aplicar as migrations no Supabase via CLI
+
+### 5.1 Pré-requisitos
+- Ter o Supabase CLI instalado
+- Estar dentro da pasta do projeto (onde existe a pasta `supabase/`)
+
+### 5.2 Linkar o projeto
+O `project_id` fica em `supabase/config.toml`. Para linkar:
+
+```powershell
+supabase login
+supabase link --project-ref lhkrxbhqagvuetoigqkl
+```
+
+### 5.3 Ver o que será aplicado (dry-run)
+```powershell
+supabase db push --dry-run --include-all
+```
+
+### 5.4 Aplicar no banco remoto
+```powershell
+supabase db push --include-all --yes
+```
+
+### 5.5 Conferência rápida
+- No Supabase Dashboard: Database → Tables
+- Verificar se existem: `company_documents`, `company_nfse_settings`
+- Verificar em `companies` as colunas: `activity_profile`, `enable_nfse`, `enable_nfe`, `enable_nfce`
