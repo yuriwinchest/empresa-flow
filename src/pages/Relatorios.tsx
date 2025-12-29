@@ -6,9 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, Landmark, TrendingUp } from "lucide-react";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis } from "recharts";
 
 export default function Relatorios() {
     const { selectedCompany } = useCompany();
@@ -107,6 +107,44 @@ export default function Relatorios() {
         return { groupByMonth, data: sorted };
     }, [transactions, dateRange.start, dateRange.end]);
 
+    const cashflowBucketed = useMemo(() => {
+        const rows = transactions ?? [];
+        const start = new Date(dateRange.start);
+        const end = new Date(dateRange.end);
+        const dayMs = 24 * 60 * 60 * 1000;
+        const totalDays = Math.max(1, Math.floor((end.getTime() - start.getTime()) / dayMs) + 1);
+        const groupByMonth = totalDays > 45;
+
+        const map = new Map<
+            string,
+            { key: string; label: string; entradas: number; saidas: number; liquido: number; acumulado: number }
+        >();
+
+        for (const t of rows) {
+            const key = groupByMonth ? t.date.slice(0, 7) : t.date;
+            const label = groupByMonth
+                ? format(new Date(`${key}-01`), "MM/yyyy")
+                : format(new Date(t.date), "dd/MM");
+            const prev = map.get(key) ?? { key, label, entradas: 0, saidas: 0, liquido: 0, acumulado: 0 };
+
+            const amount = Number(t.amount || 0);
+            if (t.type === "credit") prev.entradas += amount;
+            if (t.type === "debit") prev.saidas -= amount;
+            prev.liquido = prev.entradas + prev.saidas;
+
+            map.set(key, prev);
+        }
+
+        const sorted = Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+        let running = 0;
+        for (const item of sorted) {
+            running += item.liquido;
+            item.acumulado = running;
+        }
+
+        return { groupByMonth, data: sorted };
+    }, [transactions, dateRange.start, dateRange.end]);
+
     const topCategories = useMemo(() => {
         const rows = transactions ?? [];
         const expenses = new Map<string, number>();
@@ -127,6 +165,44 @@ export default function Relatorios() {
 
         return { expenses: top(expenses), income: top(income) };
     }, [transactions]);
+
+    const { data: dfcSummary, isLoading: isLoadingDfcSummary } = useQuery({
+        queryKey: ["dfc_summary", selectedCompany?.id, isUsingSecondary],
+        queryFn: async () => {
+            if (!selectedCompany?.id) return { bankTotal: 0, overdueReceivables: 0 };
+
+            const todayIso = format(new Date(), "yyyy-MM-dd");
+
+            const [bankAccountsRes, overdueRes] = await Promise.all([
+                (activeClient as any)
+                    .from("bank_accounts")
+                    .select("current_balance")
+                    .eq("company_id", selectedCompany.id),
+                (activeClient as any)
+                    .from("accounts_receivable")
+                    .select("amount")
+                    .eq("company_id", selectedCompany.id)
+                    .lte("due_date", todayIso)
+                    .in("status", ["pending", "overdue"]),
+            ]);
+
+            if (bankAccountsRes.error) throw bankAccountsRes.error;
+            if (overdueRes.error) throw overdueRes.error;
+
+            const bankTotal = (bankAccountsRes.data || []).reduce(
+                (sum: number, row: any) => sum + Number(row.current_balance || 0),
+                0,
+            );
+
+            const overdueReceivables = (overdueRes.data || []).reduce(
+                (sum: number, row: any) => sum + Number(row.amount || 0),
+                0,
+            );
+
+            return { bankTotal, overdueReceivables };
+        },
+        enabled: !!selectedCompany?.id,
+    });
 
     return (
         <AppLayout title="Relatórios">
@@ -195,7 +271,7 @@ export default function Relatorios() {
                         </CardHeader>
                         <CardContent>
                             <ChartContainer
-                                className="w-full"
+                                className="w-full min-h-[320px]"
                                 config={{
                                     receitas: { label: "Receitas", color: "hsl(var(--success))" },
                                     despesas: { label: "Despesas", color: "hsl(var(--destructive))" },
@@ -216,11 +292,11 @@ export default function Relatorios() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Saldo acumulado</CardTitle>
+                            <CardTitle>Geração de Caixa (acumulada)</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <ChartContainer
-                                className="w-full"
+                                className="w-full min-h-[320px]"
                                 config={{
                                     acumulado: { label: "Saldo acumulado", color: "hsl(var(--primary))" },
                                 }}
@@ -243,6 +319,74 @@ export default function Relatorios() {
                     </Card>
                 </div>
 
+                <div className="space-y-4">
+                    <h3 className="text-xl font-semibold tracking-tight">Saúde Financeira e Liquidez (DFC)</h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader className="py-4">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Caixa atual (saldo bancário total)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold flex items-center gap-2">
+                                    <Landmark className="h-6 w-6 text-primary" />
+                                    {isLoadingDfcSummary ? "—" : formatCurrency(dfcSummary?.bankTotal ?? 0)}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="py-4">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Geração de caixa (no período)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-2xl font-bold flex items-center gap-2 ${summary.net >= 0 ? "text-blue-600" : "text-red-600"}`}>
+                                    <TrendingUp className="h-6 w-6" />
+                                    {formatCurrency(summary.net)}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="py-4">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Inadimplência (AR atrasado)</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
+                                    <AlertTriangle className="h-6 w-6" />
+                                    {isLoadingDfcSummary ? "—" : formatCurrency(dfcSummary?.overdueReceivables ?? 0)}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Fluxo de Caixa Operacional (realizado)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer
+                                className="w-full min-h-[320px]"
+                                config={{
+                                    entradas: { label: "Entradas", color: "hsl(var(--success))" },
+                                    saidas: { label: "Saídas", color: "hsl(var(--destructive))" },
+                                }}
+                            >
+                                <BarChart data={cashflowBucketed.data} margin={{ left: 8, right: 8, top: 8 }}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis dataKey="label" tickMargin={8} minTickGap={12} />
+                                    <YAxis tickFormatter={(v) => new Intl.NumberFormat("pt-BR").format(v)} width={80} />
+                                    <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <ChartLegend content={<ChartLegendContent />} />
+                                    <Bar dataKey="entradas" fill="var(--color-entradas)" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="saidas" fill="var(--color-saidas)" radius={[0, 0, 4, 4]} />
+                                </BarChart>
+                            </ChartContainer>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <Card>
                         <CardHeader>
@@ -250,7 +394,7 @@ export default function Relatorios() {
                         </CardHeader>
                         <CardContent>
                             <ChartContainer
-                                className="w-full"
+                                className="w-full min-h-[320px]"
                                 config={{
                                     total: { label: "Despesas", color: "hsl(var(--destructive))" },
                                 }}
@@ -287,7 +431,7 @@ export default function Relatorios() {
                         </CardHeader>
                         <CardContent>
                             <ChartContainer
-                                className="w-full"
+                                className="w-full min-h-[320px]"
                                 config={{
                                     total: { label: "Receitas", color: "hsl(var(--success))" },
                                 }}
