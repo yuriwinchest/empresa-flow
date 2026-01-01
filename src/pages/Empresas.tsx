@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,9 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +31,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { maskCNPJ, maskCPF, maskPhone, maskCEP, unmask } from "@/utils/masks";
 import { toast } from "sonner";
 import { logDeletion } from "@/lib/audit";
+import { ChartOfAccountsManager } from "@/components/companies/ChartOfAccountsManager";
+import { banks } from "@/constants/banks";
 
 type CompanyDocumentRow = {
     id: string;
@@ -50,6 +55,39 @@ type CompanyNfseSettings = {
     password: string;
 };
 
+const defaultFormData: CompanyFormData = {
+    razao_social: "",
+    nome_fantasia: "",
+    cnpj: "",
+    inscricao_estadual: "", // Changed from 'ie' to match existing type
+    endereco_logradouro: "",
+    endereco_numero: "",
+    endereco_complemento: "",
+    endereco_bairro: "",
+    endereco_cidade: "",
+    endereco_estado: "",
+    endereco_cep: "",
+    telefone: "",
+    email: "",
+    regime_tributario: "simples", // Changed from "Simples Nacional" to match existing enum/string
+    activity_profile: "comercio", // Added as it was in original formData
+    enable_nfse: false, // Added as it was in original formData
+    enable_nfe: false, // Added as it was in original formData
+    enable_nfce: false, // Added as it was in original formData
+    natureza_juridica: "",
+    cnae: "",
+    site: "",
+    inscricao_municipal: "",
+    contato_nome: "",
+    logo_url: "", // Added as it was in original formData
+    dados_bancarios_banco: "",
+    dados_bancarios_agencia: "",
+    dados_bancarios_conta: "",
+    dados_bancarios_pix: "",
+    dados_bancarios_titular_nome: "",
+    dados_bancarios_titular_cpf_cnpj: "",
+};
+
 export default function Empresas() {
     const { user, activeClient } = useAuth();
     const { companies, isLoading, error: companiesError, createCompany, updateCompany, deleteCompany, suggestCategories } = useCompanies(user?.id);
@@ -69,6 +107,9 @@ export default function Empresas() {
     const [certificadoA1File, setCertificadoA1File] = useState<File | null>(null);
     const [isCertificadoA1Loading, setIsCertificadoA1Loading] = useState(false);
     const [isCertificadoA1Uploading, setIsCertificadoA1Uploading] = useState(false);
+    const [logoPreviewUrl, setLogoPreviewUrl] = useState("");
+    const [isLogoUploading, setIsLogoUploading] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement | null>(null);
     const [nfseSettings, setNfseSettings] = useState<CompanyNfseSettings>({
         provider: "",
         city_name: "",
@@ -83,39 +124,7 @@ export default function Empresas() {
     const [isSuggestingCategories, setIsSuggestingCategories] = useState(false);
 
     // Form State
-    const [formData, setFormData] = useState<CompanyFormData>({
-        razao_social: "",
-        nome_fantasia: "",
-        cnpj: "",
-        inscricao_estadual: "",
-        inscricao_municipal: "",
-        cnae: "",
-        activity_profile: "comercio",
-        enable_nfse: false,
-        enable_nfe: false,
-        enable_nfce: false,
-        natureza_juridica: "",
-        regime_tributario: "",
-        email: "",
-        telefone: "",
-        celular: "",
-        site: "",
-        contato_nome: "",
-        endereco_cep: "",
-        endereco_logradouro: "",
-        endereco_numero: "",
-        endereco_complemento: "",
-        endereco_bairro: "",
-        endereco_cidade: "",
-        endereco_estado: "",
-        logo_url: "",
-        dados_bancarios_banco: "",
-        dados_bancarios_agencia: "",
-        dados_bancarios_conta: "",
-        dados_bancarios_pix: "",
-        dados_bancarios_titular_cpf_cnpj: "",
-        dados_bancarios_titular_nome: "",
-    });
+    const [formData, setFormData] = useState<CompanyFormData>(defaultFormData);
 
     const isSavingCompany = createCompany.isPending || updateCompany.isPending;
     const activityProfileLabel = useMemo(() => {
@@ -180,42 +189,10 @@ export default function Empresas() {
     }, []);
 
     const isAnyDocUploading = isCartaoCnpjUploading || isCertificadoA1Uploading;
-    const isAnyBusy = isAnyDocUploading || isNfseSaving;
+    const isAnyBusy = isAnyDocUploading || isNfseSaving || isLogoUploading;
 
     const resetForm = useCallback(() => {
-        setFormData({
-            razao_social: "",
-            nome_fantasia: "",
-            cnpj: "",
-            inscricao_estadual: "",
-            inscricao_municipal: "",
-            cnae: "",
-            activity_profile: "comercio",
-            enable_nfse: false,
-            enable_nfe: false,
-            enable_nfce: false,
-            natureza_juridica: "",
-            regime_tributario: "",
-            email: "",
-            telefone: "",
-            celular: "",
-            site: "",
-            contato_nome: "",
-            endereco_cep: "",
-            endereco_logradouro: "",
-            endereco_numero: "",
-            endereco_complemento: "",
-            endereco_bairro: "",
-            endereco_cidade: "",
-            endereco_estado: "",
-            logo_url: "",
-            dados_bancarios_banco: "",
-            dados_bancarios_agencia: "",
-            dados_bancarios_conta: "",
-            dados_bancarios_pix: "",
-            dados_bancarios_titular_cpf_cnpj: "",
-            dados_bancarios_titular_nome: "",
-        });
+        setFormData(defaultFormData);
         setCnaeDescricao("");
         setCnaeOpcoes([]);
         setEditingCompany(null);
@@ -223,6 +200,7 @@ export default function Empresas() {
         setCartaoCnpjFile(null);
         setCertificadoA1Doc(null);
         setCertificadoA1File(null);
+        setLogoPreviewUrl("");
         setNfseSettings({
             provider: "",
             city_name: "",
@@ -280,6 +258,89 @@ export default function Empresas() {
         setActiveTab("geral");
         setIsDialogOpen(true);
     }, []);
+
+    useEffect(() => {
+        const value = (formData.logo_url || "").trim();
+        if (!isDialogOpen || !value) {
+            setLogoPreviewUrl("");
+            return;
+        }
+        if (/^https?:\/\//i.test(value)) {
+            setLogoPreviewUrl(value);
+            return;
+        }
+
+        let cancelled = false;
+        (async () => {
+            const { data, error } = await activeClient.storage.from("company-documents").createSignedUrl(value, 3600);
+            if (cancelled) return;
+            if (error || !data?.signedUrl) {
+                setLogoPreviewUrl("");
+                return;
+            }
+            setLogoPreviewUrl(data.signedUrl);
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeClient.storage, formData.logo_url, isDialogOpen]);
+
+    const handlePickLogo = useCallback(() => {
+        if (!editingCompany?.id) {
+            toast.error("Salve a empresa antes de anexar o logotipo");
+            return;
+        }
+        logoInputRef.current?.click();
+    }, [editingCompany?.id]);
+
+    const handleLogoChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        e.target.value = "";
+
+        if (!file) return;
+        if (!editingCompany?.id) {
+            toast.error("Salve a empresa antes de anexar o logotipo");
+            return;
+        }
+        if (file.type && !file.type.startsWith("image/")) {
+            toast.error("Arquivo inválido. Envie uma imagem.");
+            return;
+        }
+
+        setIsLogoUploading(true);
+        try {
+            const cleanedName = sanitizeFileName(file.name || "logo");
+            const storagePath = `${editingCompany.id}/logo/${Date.now()}-${cleanedName}`;
+
+            const prevLogo = (editingCompany.logo_url || "").trim();
+            if (prevLogo && !/^https?:\/\//i.test(prevLogo)) {
+                await activeClient.storage.from("company-documents").remove([prevLogo]);
+            }
+
+            const { error: uploadError } = await activeClient.storage
+                .from("company-documents")
+                .upload(storagePath, file, { contentType: file.type || undefined, upsert: false });
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await activeClient
+                .from("companies")
+                .update({ logo_url: storagePath })
+                .eq("id", editingCompany.id);
+            if (updateError) throw updateError;
+
+            const { data, error: signedUrlError } = await activeClient.storage.from("company-documents").createSignedUrl(storagePath, 3600);
+            if (!signedUrlError && data?.signedUrl) setLogoPreviewUrl(data.signedUrl);
+
+            setFormData((prev) => ({ ...prev, logo_url: storagePath }));
+            setEditingCompany((prev) => (prev ? { ...prev, logo_url: storagePath } : prev));
+            toast.success("Logotipo salvo");
+        } catch {
+            toast.error("Erro ao salvar logotipo");
+        } finally {
+            setIsLogoUploading(false);
+        }
+    }, [activeClient, editingCompany?.id, editingCompany?.logo_url, sanitizeFileName]);
 
     const handleSuggestCategories = useCallback(async () => {
         if (!editingCompany?.id) return;
@@ -595,8 +656,9 @@ export default function Empresas() {
         }
     }, [activeClient, certificadoA1Doc, editingCompany?.id]);
 
-    const handleUploadCartaoCnpj = useCallback(async () => {
-        if (!editingCompany?.id) {
+    const handleUploadCartaoCnpj = useCallback(async (companyIdOverride?: string) => {
+        const targetId = companyIdOverride || editingCompany?.id;
+        if (!targetId) {
             toast.error("Salve a empresa antes de anexar documentos");
             return;
         }
@@ -613,32 +675,31 @@ export default function Empresas() {
 
         setIsCartaoCnpjUploading(true);
         try {
-            const { data: existing, error: existingError } = await (activeClient as any)
-                .from("company_documents")
-                .select("id, storage_path")
-                .eq("company_id", editingCompany.id)
-                .eq("doc_type", "cartao_cnpj")
-                .order("created_at", { ascending: false })
-                .limit(1);
-            if (existingError) throw existingError;
-
-            if (Array.isArray(existing) && existing.length) {
-                const prev = existing[0] as { id: string; storage_path: string };
-                const { error: removePrevStorageError } = await activeClient.storage
-                    .from("company-documents")
-                    .remove([prev.storage_path]);
-                if (removePrevStorageError) throw removePrevStorageError;
-
-                const { error: removePrevRowError } = await (activeClient as any)
+            // Se estiver editando, remove o documento anterior
+            if (editingCompany?.id) {
+                const { data: existing, error: existingError } = await (activeClient as any)
                     .from("company_documents")
-                    .delete()
-                    .eq("id", prev.id)
-                    .eq("company_id", editingCompany.id);
-                if (removePrevRowError) throw removePrevRowError;
+                    .select("id, storage_path")
+                    .eq("company_id", editingCompany.id)
+                    .eq("doc_type", "cartao_cnpj")
+                    .order("created_at", { ascending: false })
+                    .limit(1);
+
+                if (!existingError && Array.isArray(existing) && existing.length) {
+                    const prev = existing[0] as { id: string; storage_path: string };
+                    await activeClient.storage
+                        .from("company-documents")
+                        .remove([prev.storage_path]);
+
+                    await (activeClient as any)
+                        .from("company_documents")
+                        .delete()
+                        .eq("id", prev.id);
+                }
             }
 
             const cleanedName = sanitizeFileName(file.name || "cartao_cnpj");
-            const storagePath = `${editingCompany.id}/cartao_cnpj/${Date.now()}-${cleanedName}`;
+            const storagePath = `${targetId}/cartao_cnpj/${Date.now()}-${cleanedName}`;
             const { error: uploadError } = await activeClient.storage
                 .from("company-documents")
                 .upload(storagePath, file, { contentType: file.type || undefined, upsert: false });
@@ -647,7 +708,7 @@ export default function Empresas() {
             const { error: insertError } = await (activeClient as any)
                 .from("company_documents")
                 .insert([{
-                    company_id: editingCompany.id,
+                    company_id: targetId,
                     doc_type: "cartao_cnpj",
                     file_name: file.name,
                     storage_path: storagePath,
@@ -658,9 +719,10 @@ export default function Empresas() {
             if (insertError) throw insertError;
 
             setCartaoCnpjFile(null);
-            await loadCartaoCnpjDoc(editingCompany.id);
+            await loadCartaoCnpjDoc(targetId);
             toast.success("Cartão CNPJ anexado");
-        } catch {
+        } catch (error) {
+            console.error("Erro upload CNPJ:", error);
             toast.error("Erro ao anexar Cartão CNPJ");
         } finally {
             setIsCartaoCnpjUploading(false);
@@ -780,6 +842,44 @@ export default function Empresas() {
         }
     }, [activeClient, editingCompany?.id, formData.enable_nfse, loadNfseSettings, nfseSettings]);
 
+    const handleConsultarCNPJ = async () => {
+        const cnpjUnmasked = formData.cnpj?.replace(/\D/g, "");
+        if (!cnpjUnmasked || cnpjUnmasked.length !== 14) {
+            toast.error("CNPJ inválido para consulta");
+            return;
+        }
+
+        const toastId = toast.loading("Consultando CNPJ...");
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjUnmasked}`);
+            if (!response.ok) throw new Error("Erro ao consultar CNPJ");
+
+            const data = await response.json();
+
+            setFormData(prev => ({
+                ...prev,
+                razao_social: data.razao_social,
+                nome_fantasia: data.nome_fantasia || data.razao_social,
+                natureza_juridica: data.natureza_juridica,
+                endereco_cep: data.cep,
+                endereco_logradouro: data.logradouro,
+                endereco_numero: data.numero,
+                endereco_bairro: data.bairro,
+                endereco_cidade: data.municipio,
+                endereco_estado: data.uf,
+                endereco_complemento: data.complemento,
+                telefone: data.ddd_telefone_1,
+                email: data.email,
+                cnae: data.cnae_fiscal_descricao
+            }));
+
+            toast.success("Dados preenchidos com sucesso!", { id: toastId });
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao consultar dados do CNPJ", { id: toastId });
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -806,12 +906,32 @@ export default function Empresas() {
 
             if (editingCompany) {
                 await updateCompany.mutateAsync({ id: editingCompany.id, data: dataToSave });
+                if (cartaoCnpjFile) {
+                    await handleUploadCartaoCnpj(editingCompany.id);
+                }
+                resetForm();
             } else {
-                await createCompany.mutateAsync(dataToSave);
+                const created = await createCompany.mutateAsync(dataToSave);
+                const createdCompany = (created && typeof created === "object" && "id" in created)
+                    ? (created as Company)
+                    : ({
+                        id: String((created as any)?.id || ""),
+                        is_active: true,
+                        ...dataToSave,
+                    } as Company);
+
+                if (createdCompany?.id) {
+                    setEditingCompany(createdCompany);
+                    setActiveTab("documentos");
+                    toast.success("Empresa salva. Agora você pode anexar documentos.");
+                    return;
+                }
+                resetForm();
             }
-            resetForm();
         } catch (error) {
             console.error(error);
+            console.error("Erro no submit da empresa:", error);
+            toast.error("Erro ao salvar empresa. Verifique os dados e tente novamente.");
         }
     };
 
@@ -897,21 +1017,87 @@ export default function Empresas() {
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogContent className="w-[calc(100vw-1.5rem)] sm:w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-y-auto p-0 border-none shadow-2xl">
+                        <DialogHeader className="p-6 pb-0">
+                            <DialogTitle>{editingCompany ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
+                            <DialogDescription>
+                                Preencha os dados abaixo para {editingCompany ? "atualizar" : "cadastrar"} a empresa.
+                            </DialogDescription>
+                        </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg overflow-hidden">
                             {/* Cabeçalho do Formulário (Estilo Unificado) */}
                             <div className="flex flex-col md:flex-row gap-6 items-stretch bg-slate-50 p-6 border-b border-slate-200">
                                 <div className="flex flex-col items-center gap-2">
                                     <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-slate-100 shadow-sm overflow-hidden p-1">
-                                        {formData.logo_url ? (
-                                            <img src={formData.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                                        {logoPreviewUrl ? (
+                                            <img src={logoPreviewUrl} alt="Logo" className="w-full h-full object-contain" />
                                         ) : (
                                             <Building2 className="w-12 h-12 text-green-600" />
                                         )}
                                     </div>
-                                    <button type="button" className="text-xs text-blue-600 font-semibold hover:underline">Alterar Logotipo</button>
+                                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                                    <button
+                                        type="button"
+                                        className="text-xs text-blue-600 font-semibold hover:underline disabled:opacity-60"
+                                        onClick={handlePickLogo}
+                                        disabled={isLogoUploading || isSavingCompany || isAnyBusy}
+                                    >
+                                        {isLogoUploading ? "Salvando..." : "Alterar Logotipo"}
+                                    </button>
                                 </div>
 
                                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 pt-1">
+                                    <div className="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <FileText className="h-5 w-5 text-green-600" />
+                                            <span className="font-bold text-slate-700">Cartão CNPJ (Upload)</span>
+                                        </div>
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex-1 space-y-2">
+                                                {isCartaoCnpjLoading ? (
+                                                    <div className="text-xs text-slate-400">Carregando arquivo...</div>
+                                                ) : cartaoCnpjDoc ? (
+                                                    <div className="flex items-center gap-2 text-sm bg-slate-50 p-2 rounded border">
+                                                        <FileText className="h-4 w-4 text-slate-400" />
+                                                        <span className="font-medium text-slate-700 flex-1 truncate">{cartaoCnpjDoc.file_name}</span>
+                                                        <span className="text-xs text-slate-400">({formatBytes(cartaoCnpjDoc.file_size)})</span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={handleDeleteCartaoCnpj}
+                                                            className="h-6 w-6 text-red-500 hover:bg-red-50"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="file"
+                                                            accept={cartaoCnpjAccept}
+                                                            onChange={(e) => setCartaoCnpjFile(e.target.files?.[0] || null)}
+                                                            disabled={isSavingCompany || isCartaoCnpjUploading}
+                                                            className="h-9 text-xs"
+                                                        />
+                                                        {editingCompany?.id && (
+                                                            <Button
+                                                                type="button"
+                                                                onClick={() => handleUploadCartaoCnpj(editingCompany.id)}
+                                                                disabled={!cartaoCnpjFile || isSavingCompany || isCartaoCnpjUploading}
+                                                                size="sm"
+                                                                className="bg-slate-700 hover:bg-slate-800 text-white"
+                                                            >
+                                                                {isCartaoCnpjUploading ? "..." : "Enviar"}
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {!editingCompany?.id && cartaoCnpjFile && (
+                                                    <p className="text-[10px] text-blue-600">* O arquivo será enviado automaticamente ao salvar a empresa.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="lg:col-span-3 space-y-1">
                                         <div className="flex justify-between items-center">
                                             <Label className="text-slate-600 text-[10px] font-bold uppercase tracking-wider">Razão Social / Nome da Matriz</Label>
@@ -935,25 +1121,28 @@ export default function Empresas() {
                                                 <Globe className="w-3 h-3" /> {isCnpjLookupLoading ? "Consultando..." : "Consultar CNPJ"}
                                             </button>
                                         </div>
-                                        <Input
-                                            value={formData.cnpj || ""}
-                                            onChange={(e) => {
-                                                const next = maskCNPJ(e.target.value);
-                                                const prevDoc = unmask(formData.cnpj || "");
-                                                const nextDoc = unmask(next);
-
-                                                if (prevDoc !== nextDoc) {
-                                                    setCnaeDescricao("");
-                                                    setCnaeOpcoes([]);
-                                                    setFormData({ ...formData, cnpj: next, cnae: "" });
-                                                    return;
-                                                }
-
-                                                setFormData({ ...formData, cnpj: next });
-                                            }}
-                                            className="h-9 focus-visible:ring-green-600 border-slate-300"
-                                            maxLength={18}
-                                        />
+                                        <div className="relative flex gap-2">
+                                            <Input
+                                                value={formData.cnpj || ""}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setFormData({ ...formData, cnpj: maskCNPJ(val) });
+                                                }}
+                                                className="h-9 border-slate-300"
+                                                maxLength={18}
+                                                placeholder="00.000.000/0000-00"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={handleConsultarCNPJ}
+                                                className="h-9 w-9 border-slate-300 bg-slate-50 hover:bg-slate-100"
+                                                title="Consultar na Receita"
+                                            >
+                                                <Search className="h-4 w-4 text-slate-600" />
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     <div className="lg:col-span-2 space-y-1">
@@ -994,6 +1183,7 @@ export default function Empresas() {
                                         <TabsTrigger value="contato" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Comunicação</TabsTrigger>
                                         <TabsTrigger value="banco" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Dados Bancários</TabsTrigger>
                                         <TabsTrigger value="documentos" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Documentos</TabsTrigger>
+                                        <TabsTrigger value="plano_contas" className="border-b-2 border-transparent data-[state=active]:border-green-600 data-[state=active]:bg-transparent data-[state=active]:text-green-700 rounded-none px-2 pb-2 text-xs font-bold uppercase tracking-wider transition-all">Plano de Contas</TabsTrigger>
                                     </TabsList>
 
                                     <TabsContent value="geral" className="space-y-4 pt-2">
@@ -1045,25 +1235,39 @@ export default function Empresas() {
                                                         </SelectContent>
                                                     </Select>
                                                 ) : null}
-                                                <div className="flex flex-wrap gap-2 pt-1">
-                                                    <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
-                                                        Perfil: {activityProfileLabel}
-                                                    </Badge>
-                                                    {formData.enable_nfse ? (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                            NFS-e
-                                                        </Badge>
-                                                    ) : null}
-                                                    {formData.enable_nfe ? (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                            NF-e
-                                                        </Badge>
-                                                    ) : null}
-                                                    {formData.enable_nfce ? (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                            NFC-e
-                                                        </Badge>
-                                                    ) : null}
+                                                <div className="flex flex-col gap-2 pt-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Label className="text-slate-600 font-bold text-xs uppercase">Emissão Fiscal Habilitada:</Label>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-4">
+                                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.enable_nfse}
+                                                                onChange={(e) => setFormData({ ...formData, enable_nfse: e.target.checked })}
+                                                                className="rounded border-slate-300 text-green-600 focus:ring-green-600"
+                                                            />
+                                                            <span className="text-sm text-slate-700">NFS-e (Serviços)</span>
+                                                        </label>
+                                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.enable_nfe}
+                                                                onChange={(e) => setFormData({ ...formData, enable_nfe: e.target.checked })}
+                                                                className="rounded border-slate-300 text-green-600 focus:ring-green-600"
+                                                            />
+                                                            <span className="text-sm text-slate-700">NF-e (Produtos)</span>
+                                                        </label>
+                                                        <label className="flex items-center space-x-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.enable_nfce}
+                                                                onChange={(e) => setFormData({ ...formData, enable_nfce: e.target.checked })}
+                                                                className="rounded border-slate-300 text-green-600 focus:ring-green-600"
+                                                            />
+                                                            <span className="text-sm text-slate-700">NFC-e (Consumidor)</span>
+                                                        </label>
+                                                    </div>
                                                 </div>
                                                 <div className="pt-2">
                                                     <Button
@@ -1185,7 +1389,22 @@ export default function Empresas() {
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div className="space-y-2">
                                                 <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Banco</Label>
-                                                <Input value={formData.dados_bancarios_banco || ""} onChange={(e) => setFormData({ ...formData, dados_bancarios_banco: e.target.value })} className="h-9 border-slate-300" />
+                                                <Select
+                                                    value={formData.dados_bancarios_banco || ""}
+                                                    onValueChange={(value) => setFormData({ ...formData, dados_bancarios_banco: value })}
+                                                    disabled={isSavingCompany || isAnyBusy}
+                                                >
+                                                    <SelectTrigger className="h-9 border-slate-300">
+                                                        <SelectValue placeholder="Selecione o banco..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-h-[300px]">
+                                                        {banks.map((bank) => (
+                                                            <SelectItem key={bank.code} value={`${bank.code} - ${bank.name}`}>
+                                                                {bank.code} - {bank.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Agência</Label>
@@ -1273,15 +1492,32 @@ export default function Empresas() {
                                                     <Input
                                                         type="file"
                                                         accept={cartaoCnpjAccept}
-                                                        onChange={(e) => setCartaoCnpjFile(e.target.files?.[0] || null)}
-                                                        disabled={!editingCompany?.id || isSavingCompany || isCartaoCnpjUploading}
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0] || null;
+                                                            setCartaoCnpjFile(file);
+
+                                                            // Tenta extrair CNPJ do nome do arquivo (ex: CNPJ_12345678000199.pdf)
+                                                            if (file && !formData.cnpj) {
+                                                                const cnpjMatch = file.name.match(/\d{14}/) || file.name.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
+                                                                if (cnpjMatch) {
+                                                                    setFormData(prev => ({ ...prev, cnpj: cnpjMatch[0] }));
+                                                                    toast.success("CNPJ detectado no nome do arquivo");
+                                                                }
+                                                            }
+                                                        }}
+                                                        disabled={isSavingCompany || isCartaoCnpjUploading}
                                                         className="h-10 border-slate-300"
                                                     />
+                                                    {!editingCompany?.id && cartaoCnpjFile && (
+                                                        <div className="text-[10px] text-blue-600 font-medium">
+                                                            * O arquivo será enviado automaticamente ao salvar a empresa.
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="md:col-span-2 flex items-end gap-2">
                                                     <Button
                                                         type="button"
-                                                        onClick={handleUploadCartaoCnpj}
+                                                        onClick={() => handleUploadCartaoCnpj()}
                                                         disabled={!editingCompany?.id || !cartaoCnpjFile || isSavingCompany || isCartaoCnpjUploading}
                                                         className="bg-green-600 hover:bg-green-700 font-bold h-10 flex-1"
                                                     >
@@ -1297,7 +1533,7 @@ export default function Empresas() {
                                             ) : null}
                                         </div>
 
-                                        {formData.enable_nfe || formData.enable_nfce ? (
+                                        {formData.enable_nfe || formData.enable_nfce || formData.enable_nfse ? (
                                             <div className="rounded-xl border border-slate-200 bg-white p-4">
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex items-start gap-3">
@@ -1500,6 +1736,18 @@ export default function Empresas() {
                                                 NFS-e não está habilitada para este perfil.
                                             </div>
                                         )}
+                                    </TabsContent>
+
+                                    <TabsContent value="plano_contas" className="space-y-4 pt-2">
+                                        <div className="rounded-xl border border-slate-200 bg-white p-6">
+                                            {editingCompany?.id ? (
+                                                <ChartOfAccountsManager companyId={editingCompany.id} />
+                                            ) : (
+                                                <div className="text-center text-slate-500 py-8">
+                                                    Salve a empresa primeiro para gerenciar o plano de contas.
+                                                </div>
+                                            )}
+                                        </div>
                                     </TabsContent>
                                 </Tabs>
                             </div>

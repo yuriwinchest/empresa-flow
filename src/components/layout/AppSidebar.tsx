@@ -48,9 +48,7 @@ const financeiroItems = [
   { title: "Conciliação", icon: CreditCard, url: "/conciliacao" },
 ];
 
-const crmItems = [
-  { title: "CRM", icon: Target, url: "/crm" },
-];
+
 
 const operacionalItems = [
   { title: "Operacional", icon: Package, url: "/operacional" },
@@ -134,23 +132,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Vendas & CRM</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {crmItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+
 
         <SidebarGroup>
           <SidebarGroupLabel>Operação</SidebarGroupLabel>

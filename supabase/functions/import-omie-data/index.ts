@@ -411,15 +411,15 @@ serve(async (req) => {
         const dataVencimento = line[20]?.trim();
         const observacao = line[23]?.trim();
 
-        const dueDate = parseDate(dataVencimento || previsaoPagamento);
-        const amount = parseNumber(valorConta);
+        const dueDate = parseDate(dataVencimento || previsaoPagamento || '');
+        const amount = parseNumber(valorConta || '');
 
         if (!dueDate || amount === 0) continue;
 
         const supplierId = nomeFornecedor ? supplierMap.get(nomeFornecedor.toLowerCase()) : null;
         const categoryId = categoria ? categoryMap.get(categoria.toLowerCase()) : null;
         const status = mapStatus(situacao);
-        const paymentDate = status === 'paid' ? parseDate(ultimoPagamento) : null;
+        const paymentDate = status === 'paid' ? parseDate(ultimoPagamento || '') : null;
 
         const description = `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeFornecedor || 'Sem fornecedor'}`.trim();
 
@@ -488,15 +488,15 @@ serve(async (req) => {
         const dataVencimento = line[21]?.trim();
         const observacao = line[24]?.trim();
 
-        const dueDate = parseDate(dataVencimento || previsaoRecebimento);
-        const amount = parseNumber(valorConta);
+        const dueDate = parseDate(dataVencimento || previsaoRecebimento || '');
+        const amount = parseNumber(valorConta || '');
 
         if (!dueDate || amount === 0) continue;
 
         const clientId = nomeCliente ? clientMap.get(nomeCliente.toLowerCase()) : null;
         const categoryId = categoria ? categoryMap.get(categoria.toLowerCase()) : null;
         const status = mapStatus(situacao);
-        const receiveDate = status === 'paid' ? parseDate(ultimoRecebimento) : null;
+        const receiveDate = status === 'paid' ? parseDate(ultimoRecebimento || '') : null;
 
         const description = `${tipoDocumento || 'Conta'} ${parcela ? `- ${parcela}` : ''} - ${nomeCliente || 'Sem cliente'}`.trim();
 

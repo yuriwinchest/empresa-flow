@@ -1,6 +1,19 @@
+
 export type FinanceStatus = 'pending' | 'paid' | 'cancelled' | 'overdue';
 export type PaymentMethod = 'pix' | 'boleto' | 'transfer' | 'cash' | 'card' | 'other';
 export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type AccountType = 'receita' | 'despesa' | 'ativo' | 'passivo';
+
+export interface ChartOfAccount {
+    id: string;
+    company_id: string;
+    code: string;
+    name: string;
+    type: AccountType;
+    parent_id?: string;
+    is_analytic: boolean;
+    created_at: string;
+}
 
 export interface AccountsPayable {
     id: string;
@@ -17,6 +30,30 @@ export interface AccountsPayable {
     recurrence?: RecurrenceType;
     observations?: string;
     file_url?: string;
+    transaction_id?: string;
+    bank_account_id?: string;
+
+    // Extended Fields
+    invoice_number?: string;
+    issue_date?: string;
+    register_date?: string;
+    project_id?: string;
+    department_id?: string;
+
+    // Taxes
+    pis_amount?: number;
+    pis_retain?: boolean;
+    cofins_amount?: number;
+    cofins_retain?: boolean;
+    csll_amount?: number;
+    csll_retain?: boolean;
+    ir_amount?: number;
+    ir_retain?: boolean;
+    iss_amount?: number;
+    iss_retain?: boolean;
+    inss_amount?: number;
+    inss_retain?: boolean;
+
     created_at: string;
     updated_at: string;
     supplier?: {
@@ -42,6 +79,30 @@ export interface AccountsReceivable {
     recurrence?: RecurrenceType;
     observations?: string;
     file_url?: string;
+    transaction_id?: string;
+    bank_account_id?: string; // Ensured
+
+    // Extended Fields
+    invoice_number?: string;
+    issue_date?: string;
+    register_date?: string;
+    project_id?: string;
+    department_id?: string;
+
+    // Taxes
+    pis_amount?: number;
+    pis_retain?: boolean;
+    cofins_amount?: number;
+    cofins_retain?: boolean;
+    csll_amount?: number;
+    csll_retain?: boolean;
+    ir_amount?: number;
+    ir_retain?: boolean;
+    iss_amount?: number;
+    iss_retain?: boolean;
+    inss_amount?: number;
+    inss_retain?: boolean;
+
     created_at: string;
     updated_at: string;
     client?: {

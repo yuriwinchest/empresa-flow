@@ -4,11 +4,24 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useCompany } from "@/contexts/CompanyContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    AreaChart,
+    Area,
+} from "recharts";
+import { startOfMonth, endOfMonth, subMonths, format, parseISO, isSameMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function CompanyDashboard() {
     const { id } = useParams<{ id: string }>();
@@ -78,6 +91,87 @@ export default function CompanyDashboard() {
         enabled: Boolean(companyId) && (Boolean(selectedCompany?.enable_nfe) || Boolean(selectedCompany?.enable_nfce)),
     });
 
+    const { data: financials } = useQuery({
+        queryKey: ["dashboard_financials", companyId, isUsingSecondary],
+        queryFn: async () => {
+            if (!companyId) return { payable: [], receivable: [] };
+
+            // Fetch Payables
+            const { data: payableData } = await (activeClient as any)
+                .from("accounts_payable")
+                .select("amount, due_date, status, payment_date")
+                .eq("company_id", companyId);
+
+            // Fetch Receivables
+            const { data: receivableData } = await (activeClient as any)
+                .from("accounts_receivable")
+                .select("amount, due_date, status, receive_date")
+                .eq("company_id", companyId);
+
+            return {
+                payable: payableData || [],
+                receivable: receivableData || []
+            };
+        },
+        enabled: Boolean(companyId),
+    });
+
+    const stats = useMemo(() => {
+        if (!financials) return { totalPayablePending: 0, totalReceivablePending: 0, balance: 0 };
+
+        const totalPayablePending = financials.payable
+            .filter((i: any) => i.status === 'pending')
+            .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+        const totalReceivablePending = financials.receivable
+            .filter((i: any) => i.status === 'pending')
+            .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+        return {
+            totalPayablePending,
+            totalReceivablePending,
+            balance: totalReceivablePending - totalPayablePending
+        };
+    }, [financials]);
+
+    const chartData = useMemo(() => {
+        if (!financials) return [];
+
+        const data = [];
+        const today = new Date();
+
+        for (let i = 5; i >= 0; i--) {
+            const date = subMonths(today, i);
+            const monthStr = format(date, "MMM", { locale: ptBR });
+            const monthFull = format(date, "yyyy-MM");
+
+            const monthlyPayable = financials.payable
+                .filter((item: any) => {
+                    const itemDate = item.status === 'paid' && item.payment_date
+                        ? parseISO(item.payment_date)
+                        : parseISO(item.due_date);
+                    return isSameMonth(itemDate, date);
+                })
+                .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+            const monthlyReceivable = financials.receivable
+                .filter((item: any) => {
+                    const itemDate = item.status === 'paid' && item.receive_date
+                        ? parseISO(item.receive_date)
+                        : parseISO(item.due_date);
+                    return isSameMonth(itemDate, date);
+                })
+                .reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+
+            data.push({
+                name: monthStr.charAt(0).toUpperCase() + monthStr.slice(1),
+                Entradas: monthlyReceivable,
+                Saidas: monthlyPayable,
+            });
+        }
+        return data;
+    }, [financials]);
+
     const isNfseConfigured = useMemo(() => {
         if (!selectedCompany?.enable_nfse) return false;
         const provider = String((nfseSettings as any)?.provider || "").trim();
@@ -132,38 +226,112 @@ export default function CompanyDashboard() {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {/* Placeholder Cards for Company Specific Stats */}
-                    <Card>
+                    <Card className="border-0 shadow-lg bg-white overflow-hidden relative group hover:shadow-xl transition-all duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-500">Saldo Previsto</CardTitle>
+                            <DollarSign className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${stats.balance >= 0 ? 'text-blue-600' : 'text-red-500'}`}>
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.balance)}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Recebíveis - Pagáveis (Pendentes)
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-l-emerald-500 overflow-hidden relative group hover:shadow-xl transition-all duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-emerald-700">A Receber (Pendente)</CardTitle>
+                            <ArrowUpRight className="h-4 w-4 text-emerald-400 group-hover:text-emerald-600 transition-colors" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-emerald-700">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivablePending)}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-rose-50 border-l-4 border-l-red-500 overflow-hidden relative group hover:shadow-xl transition-all duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium text-red-700">A Pagar (Pendente)</CardTitle>
+                            <ArrowDownRight className="h-4 w-4 text-red-400 group-hover:text-red-600 transition-colors" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-red-600">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalPayablePending)}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-lg bg-white overflow-hidden relative group hover:shadow-xl transition-all duration-300">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">{headlineLabel}</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-slate-300 group-hover:text-purple-500 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">R$ 0,00</div>
-                            <p className="text-xs text-muted-foreground">+0% em relação ao mês anterior</p>
+                            <div className="text-2xl font-bold text-slate-800">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                    chartData[chartData.length - 1]?.Entradas || 0
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Neste mês</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">{secondLabel}</CardTitle>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3 h-[400px]">
+                    <Card className="md:col-span-2 border-0 shadow-xl bg-white/80 backdrop-blur">
+                        <CardHeader>
+                            <CardTitle className="text-slate-800">Fluxo de Caixa (Últimos 6 Meses)</CardTitle>
+                            <CardDescription>Comparativo de Entradas e Saídas</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">0</div>
+                        <CardContent className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(value) => `R$ ${value / 1000}k`}
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)}
+                                        contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                    <Bar dataKey="Entradas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="Saidas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">A Pagar</CardTitle>
+
+                    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur">
+                        <CardHeader>
+                            <CardTitle className="text-slate-800">Evolução</CardTitle>
+                            <CardDescription>Tendência de Receita</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-red-600">R$ 0,00</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">A Receber</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600">R$ 0,00</div>
+                        <CardContent className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} vertical={false} />
+                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value as number)}
+                                        contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                    <Area type="monotone" dataKey="Entradas" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorEntradas)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </CardContent>
                     </Card>
                 </div>

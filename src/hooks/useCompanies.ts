@@ -125,7 +125,7 @@ export function useCompanies(userId?: string) {
             const { data: insertedCompany, error: insertError } = await activeClient
                 .from("companies")
                 .insert([data])
-                .select("id")
+                .select("*")
                 .single();
 
             if (insertError) throw insertError;
@@ -133,13 +133,16 @@ export function useCompanies(userId?: string) {
 
             await activeClient.from("user_companies").update({ is_default: false }).eq("user_id", userId);
 
-            const { error: linkError } = await activeClient.from("user_companies").insert([
-                {
-                    user_id: userId,
-                    company_id: insertedCompany.id,
-                    is_default: true,
-                },
-            ]);
+            const { error: linkError } = await activeClient.from("user_companies").upsert(
+                [
+                    {
+                        user_id: userId,
+                        company_id: insertedCompany.id,
+                        is_default: true,
+                    },
+                ],
+                { onConflict: "user_id,company_id" },
+            );
 
             if (linkError) throw linkError;
 
@@ -166,6 +169,8 @@ export function useCompanies(userId?: string) {
             } catch (error) {
                 console.error("Erro ao criar categorias sugeridas:", error);
             }
+
+            return insertedCompany as Company;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["companies", isUsingSecondary, userId] });

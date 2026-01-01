@@ -11,17 +11,49 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Search, Package, Layers, CheckCircle2, XCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Search, Package, Layers, CheckCircle2, XCircle, Plus, Pencil, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ProductSheet } from "@/components/products/ProductSheet";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { Badge } from "@/components/ui/badge";
+import { Product } from "@/types/product";
 
 export default function ProdutosDepartamentos() {
     const { selectedCompany } = useCompany();
     const { activeClient, isUsingSecondary } = useAuth();
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState("");
     const [activeTab, setActiveTab] = useState("products");
+
+    // Product Sheet & Edit State
+    const [isProductSheetOpen, setIsProductSheetOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+    // Delete Mutation
+    const deleteProductMutation = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await activeClient.from("products").delete().eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+            toast.success("Produto excluído!");
+        },
+        onError: () => toast.error("Erro ao excluir produto.")
+    });
+
+    const handleEdit = (product: Product) => {
+        setEditingProduct(product);
+        setIsProductSheetOpen(true);
+    };
+
+    const handleCreate = () => {
+        setEditingProduct(null);
+        setIsProductSheetOpen(true);
+    };
 
     const normalizeSearch = (value: unknown) =>
         String(value ?? "")
@@ -130,8 +162,11 @@ export default function ProdutosDepartamentos() {
 
                     <TabsContent value="products">
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle>Catálogo de Produtos</CardTitle>
+                                <Button onClick={handleCreate} size="sm">
+                                    <Plus className="h-4 w-4 mr-2" /> Novo Produto
+                                </Button>
                             </CardHeader>
                             <CardContent>
                                 <Table>
@@ -139,25 +174,36 @@ export default function ProdutosDepartamentos() {
                                         <TableRow>
                                             <TableHead>Código</TableHead>
                                             <TableHead>Descrição</TableHead>
-                                            <TableHead>Família</TableHead>
+                                            <TableHead>Atividade</TableHead>
+                                            <TableHead>Tributação</TableHead>
+                                            <TableHead>Custo</TableHead>
                                             <TableHead>Preço</TableHead>
+                                            <TableHead>Líquido</TableHead>
                                             <TableHead>NCM/CEST</TableHead>
                                             <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {productsLoading ? (
-                                            <TableRow><TableCell colSpan={6} className="text-center py-8">Carregando...</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={10} className="text-center py-8">Carregando...</TableCell></TableRow>
                                         ) : filteredProducts?.length === 0 ? (
-                                            <TableRow><TableCell colSpan={6} className="text-center py-8">Nenhum produto encontrado.</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={10} className="text-center py-8">Nenhum produto encontrado.</TableCell></TableRow>
                                         ) : (
                                             filteredProducts?.map((p) => (
                                                 <TableRow key={p.id}>
                                                     <TableCell className="font-mono text-xs">{p.code || "-"}</TableCell>
                                                     <TableCell className="font-bold">{p.description}</TableCell>
-                                                    <TableCell>{p.family || "-"}</TableCell>
+                                                    <TableCell>{p.activity || "-"}</TableCell>
+                                                    <TableCell>{p.taxation_type || "-"}</TableCell>
+                                                    <TableCell>
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.cost_price || 0))}
+                                                    </TableCell>
                                                     <TableCell className="font-bold text-green-600">
                                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.price || 0))}
+                                                    </TableCell>
+                                                    <TableCell className="font-bold text-blue-600">
+                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.price || 0) - Number(p.cost_price || 0))}
                                                     </TableCell>
                                                     <TableCell className="text-xs text-muted-foreground">
                                                         <div className="flex flex-col">
@@ -175,6 +221,18 @@ export default function ProdutosDepartamentos() {
                                                                 <XCircle className="h-4 w-4" /> Inativo
                                                             </div>
                                                         )}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}>
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={() => {
+                                                                if (confirm("Excluir este produto?")) deleteProductMutation.mutate(p.id);
+                                                            }}>
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -220,6 +278,12 @@ export default function ProdutosDepartamentos() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <ProductSheet
+                isOpen={isProductSheetOpen}
+                onClose={() => setIsProductSheetOpen(false)}
+                product={editingProduct}
+            />
         </AppLayout>
     );
 }

@@ -1,5 +1,7 @@
 # Instruções de Execução e Manutenção
 
+> 🇧🇷 **ATENÇÃO:** Todas as respostas e interações devem ser feitas estritamente em **Português do Brasil (PT-BR)** conforme solicitação do usuário.
+
 Este documento registra as melhorias e correções implementadas, bem como os princípios de engenharia de software aplicados, conforme solicitado.
 
 ## 1. Princípios de Engenharia Aplicados
