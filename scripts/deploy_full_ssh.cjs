@@ -69,29 +69,14 @@ async function deploy() {
             }
         }
 
-        // 3. Executar Migrations no Banco (VPS)
-        console.log("\n🗄️ 3. Atualizando Banco de Dados (VPS)...");
-        // Tenta rodar no container 'supabase-db' (comum) ou 'db'
-        const migrationScript = `
-            cd ${remoteDir}
-            if podman ps | grep -q supabase-db; then
-                echo "Aplicando migration em supabase-db..."
-                cat migration_vps.sql | podman exec -i supabase-db psql -U postgres -d postgres
-            else
-                echo "⚠️ Container supabase-db não encontrado. Tentando 'db'..."
-                if podman ps | grep -q db; then
-                     cat migration_vps.sql | podman exec -i db psql -U postgres -d postgres
-                else
-                     echo "❌ NENHUM CONTAINER DE DB ENCONTRADO. Migration pulada."
-                fi
-            fi
-        `;
-        await execSSH(migrationScript).catch(e => console.warn("Erro não fatal na migration:", e.message));
-
-        // 4. Build Remoto
-        console.log("\n🔨 4. Executando Build Remoto...");
+        // 3. Build Remoto
+        console.log("\n🔨 3. Executando Build Remoto (Limpando Cache)...");
         const buildScript = `
             cd ${remoteDir}
+            echo "Limpando caches antigos..."
+            rm -rf node_modules/.vite
+            rm -rf dist
+
             echo "Instalando dependências..."
             npm install --silent
             
@@ -100,8 +85,8 @@ async function deploy() {
         `;
         await execSSH(buildScript);
 
-        // 5. Restart PM2
-        console.log("\n🚀 5. Reiniciando Servidor PM2...");
+        // 4. Restart PM2
+        console.log("\n🚀 4. Reiniciando Servidor PM2...");
         const restartScript = `
             cd ${remoteDir}
             pm2 describe empresa-flow > /dev/null

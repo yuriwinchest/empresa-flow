@@ -21,7 +21,17 @@ export const CompanySchema = z.object({
     inscricao_estadual: z.string().optional(),
     inscricao_municipal: z.string().optional(),
     natureza_juridica: z.string().optional(),
-    cnae: z.string().optional(),
+    natureza_juridica_code: z.string().optional(),
+    natureza_juridica_desc: z.string().optional(),
+
+    cnae: z.string().optional(), // Mantido para compatibilidade
+    cnae_principal_code: z.string().optional(),
+    cnae_principal_desc: z.string().optional(),
+
+    // CNAE Secundários podem ser múltiplos, mas vamos guardar como texto por enquanto ou JSON
+    cnae_secundario_code: z.string().optional(),
+    cnae_secundario_desc: z.string().optional(),
+
     regime_tributario: z.string().optional(),
 
     // Contato

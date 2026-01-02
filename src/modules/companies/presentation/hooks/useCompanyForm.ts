@@ -285,6 +285,21 @@ export function useCompanyForm(companyId?: string) {
             }
 
             setCartaoCnpjFile(file);
+
+            // Popula os novos campos de Código/Descrição
+            if (data.cnae_principal_code) form.setValue("cnae_principal_code", data.cnae_principal_code);
+            if (data.cnae_principal) form.setValue("cnae_principal_desc", data.cnae_principal); // ou cnae
+            // Mantém compatibilidade
+            if (data.cnae_principal) form.setValue("cnae", data.cnae_principal);
+
+            if (data.cnae_secundario_code) form.setValue("cnae_secundario_code", data.cnae_secundario_code);
+            if (data.cnae_secundario_desc) form.setValue("cnae_secundario_desc", data.cnae_secundario_desc);
+
+            if (data.natureza_juridica_code) form.setValue("natureza_juridica_code", data.natureza_juridica_code);
+            if (data.natureza_juridica_desc) form.setValue("natureza_juridica_desc", data.natureza_juridica_desc);
+            // Mantém compatibilidade
+            if (data.natureza_juridica) form.setValue("natureza_juridica", data.natureza_juridica);
+
             toast({ title: "Leitura Concluída", description: "Dados extraídos do cartão CNPJ." });
 
         } catch (error: any) {

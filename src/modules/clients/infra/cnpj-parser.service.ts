@@ -99,14 +99,56 @@ export class CNPJParserService {
         const porteMatch = normalized.match(/PORTE\s+(.*?)\s+CÓDIGO E DESCRIÇÃO/);
         if (porteMatch) data.porte = porteMatch[1].trim();
 
-        // 6. CNAE Principal
-        // CÓDIGO E DESCRIÇÃO DA ATIVIDADE ECONÔMICA PRINCIPAL 00.00-0-00 - Descrição
-        const cnaeMatch = normalized.match(/ATIVIDADE ECONÔMICA PRINCIPAL\s+(\d{2}\.\d{2}-\d-\d{2})/);
-        if (cnaeMatch) data.cnae_principal = cnaeMatch[1].replace(/[^\d]/g, ''); // Apenas números
+        // 6. CNAE Principal (Código e Descrição)
+        // Padrão: CÓDIGO E DESCRIÇÃO DA ATIVIDADE ECONÔMICA PRINCIPAL
+        //         X.XX-X-XX - Descrição da atividade...
+        const cnaePrincipalMatch = normalized.match(/ATIVIDADE ECONÔMICA PRINCIPAL\s+(\d{2}\.\d{2}-\d-\d{2})\s+-\s+(.*?)\s+CÓDIGO E DESCRIÇÃO DAS? ATIVIDADES? ECONÔMICAS? SECUNDÁRIAS?/);
+        if (cnaePrincipalMatch) {
+            data.cnae_principal_code = cnaePrincipalMatch[1].replace(/[^\d]/g, '');
+            // Captura tudo até o próximo título, removendo espaços extras
+            data.cnae_principal = cnaePrincipalMatch[1] + ' - ' + cnaePrincipalMatch[2].trim();
+        } else {
+            // Fallback simples se o regex complexo falhar
+            const simpleCnae = normalized.match(/ATIVIDADE ECONÔMICA PRINCIPAL\s+(\d{2}\.\d{2}-\d-\d{2})/);
+            if (simpleCnae) data.cnae_principal_code = simpleCnae[1].replace(/[^\d]/g, '');
+        }
 
-        // 7. Natureza Jurídica
-        const natJuridicaMatch = normalized.match(/CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA\s+\d+-\d\s+-\s+(.*?)\s+LOGRADOURO/);
-        if (natJuridicaMatch) data.natureza_juridica = natJuridicaMatch[1].trim();
+        // 6.1 CNAEs Secundários
+        // Padrão: CÓDIGO E DESCRIÇÃO DAS ATIVIDADES ECONÔMICAS SECUNDÁRIAS
+        //         xx.xx-x-xx - Descrição 1
+        //         yy.yy-y-yy - Descrição 2
+        //         ...
+        //         CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA
+        const secondaryBlockMatch = normalized.match(/ATIVIDADES? ECONÔMICAS? SECUNDÁRIAS?\s+(.*?)\s+CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA/);
+
+        if (secondaryBlockMatch) {
+            const block = secondaryBlockMatch[1];
+            // Regex para pegar todos os códigos no formato XX.XX-X-XX
+            const codes = [...block.matchAll(/(\d{2}\.\d{2}-\d-\d{2})/g)].map(m => m[1]);
+
+            if (codes.length > 0) {
+                // Salva apenas os códigos separados por vírgula para facilitar
+                data.cnae_secundario_code = codes.map(c => c.replace(/[^\d]/g, '')).join(',');
+                data.cnae_secundario_desc = block.trim(); // Salva o bloco inteiro de texto como descrição por enquanto
+            } else {
+                // Caso especial: "Não informada"
+                if (block.includes("NÃO INFORMADA")) {
+                    data.cnae_secundario_desc = "Não informada";
+                }
+            }
+        }
+
+        // 7. Natureza Jurídica (Código e Descrição)
+        // Padrão: CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA
+        //         XXXX-X - Descrição...
+        //         LOGRADOURO
+        const natJuridicaMatch = normalized.match(/CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA\s+(\d{4}-\d)\s+-\s+(.*?)\s+LOGRADOURO/);
+        if (natJuridicaMatch) {
+            data.natureza_juridica_code = natJuridicaMatch[1].replace(/[^\d]/g, '');
+            data.natureza_juridica_desc = natJuridicaMatch[2].trim();
+            // Mantém compatibilidade com campo antigo
+            data.natureza_juridica = natJuridicaMatch[1] + ' - ' + natJuridicaMatch[2].trim();
+        }
 
         // 8. Endereço
         // LOGRADOURO X NÚMERO Y COMPLEMENTO Z CEP W BAIRRO B MUNICÍPIO M UF U

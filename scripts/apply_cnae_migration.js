@@ -1,0 +1,53 @@
+
+import fs from 'fs';
+import path from 'path';
+import pg from 'pg';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+// Configuração para ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Carrega variáveis de ambiente do arquivo .env na raiz
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+// Configura conexão direta (Porta 5432 - Transaction Mode / Session Mode)
+// Usamos a senha direta do .env: TQHjl8jKrOVhgKga
+const connectionString = "postgres://postgres:TQHjl8jKrOVhgKga@db.lhkrxbhqagvuetoigqkl.supabase.co:5432/postgres";
+
+console.log(`🔌 Conectando ao Supabase (Direct): db.lhkrxbhqagvuetoigqkl.supabase.co...`);
+
+const client = new pg.Client({
+    connectionString,
+    ssl: { rejectUnauthorized: false } // Necessário para Supabase Cloud
+});
+
+async function runMigration() {
+    try {
+        await client.connect();
+        console.log('✅ Conexão estabelecida.');
+
+        const migrationFile = path.join(__dirname, '../supabase/migrations/20260102143000_add_cnae_details.sql');
+
+        if (!fs.existsSync(migrationFile)) {
+            throw new Error(`Arquivo de migração não encontrado: ${migrationFile}`);
+        }
+
+        const sql = fs.readFileSync(migrationFile, 'utf8');
+        console.log(`📄 Lendo arquivo: ${path.basename(migrationFile)}`);
+        console.log(`🚀 Executando SQL...`);
+
+        const res = await client.query(sql);
+        console.log('🎉 Migração aplicada com SUCESSO!');
+
+    } catch (err) {
+        console.error('❌ Erro ao aplicar migração:', err);
+        process.exit(1);
+    } finally {
+        await client.end();
+        console.log('🔌 Conexão encerrada.');
+    }
+}
+
+runMigration();
