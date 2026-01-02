@@ -17,12 +17,11 @@ interface ClientHeaderProps {
 
 export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeaderProps) {
     return (
-        <div className="flex gap-6 items-start bg-slate-50/50 p-4 rounded-lg border border-slate-100 mb-6">
-
-            {/* Área do Logo (Placeholder para implementação futura de upload) */}
-            <div className="flex flex-col items-center gap-2">
-                <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center border-4 border-white shadow-sm overflow-hidden">
-                    <User className="w-10 h-10 text-slate-400" />
+        <div className="flex flex-col md:flex-row gap-6 items-start bg-slate-50/50 p-6 rounded-lg border border-slate-100 mb-6 transition-all hover:bg-slate-50">
+            {/* Área do Logo */}
+            <div className="flex flex-col items-center gap-3 shrink-0 mx-auto md:mx-0">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-slate-100 shadow-sm overflow-hidden group hover:border-green-100 transition-colors cursor-pointer">
+                    <User className="w-10 h-10 text-slate-300 group-hover:text-green-500 transition-colors" />
                 </div>
                 <button type="button" className="text-xs text-blue-600 font-semibold hover:underline">
                     Alterar Logo
@@ -30,10 +29,10 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
             </div>
 
             {/* Campos Principais */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-4">
 
-                {/* Razão Social */}
-                <div className="md:col-span-3 space-y-1">
+                {/* Linha 1: Tipo de Pessoa (Topo Direita) e Razão Social (Topo Esquerda) */}
+                <div className="md:col-span-8 space-y-1">
                     <FormField
                         control={form.control}
                         name="razao_social"
@@ -41,7 +40,7 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                             <FormItem>
                                 <FormLabel className="text-slate-600 text-xs font-bold uppercase">Razão Social / Nome Completo</FormLabel>
                                 <FormControl>
-                                    <Input className="h-9 focus-visible:ring-green-600 border-slate-300" {...field} />
+                                    <Input className="h-10 border-slate-200 focus:border-green-500 focus:ring-green-500/20" placeholder="Digite o nome principal" {...field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -49,42 +48,41 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                     />
                 </div>
 
-                {/* Tipo de Pessoa e CPF/CNPJ */}
-                <div className="space-y-4">
-                    {/* Seletor Tipo Pessoa */}
+                <div className="md:col-span-4 space-y-1">
                     <FormField
                         control={form.control}
                         name="tipo_pessoa"
                         render={({ field }) => (
-                            <FormItem className="space-y-1">
+                            <FormItem>
                                 <FormLabel className="text-slate-600 text-xs font-bold uppercase">Tipo de Pessoa</FormLabel>
                                 <FormControl>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <div className="flex items-center gap-4 h-10 px-3 bg-white border border-slate-200 rounded-md">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-green-700">
                                             <input
                                                 type="radio"
                                                 value="PF"
                                                 checked={field.value === "PF"}
                                                 onChange={() => {
                                                     field.onChange("PF");
-                                                    form.setValue("cpf_cnpj", ""); // Limpa ao trocar
+                                                    form.setValue("cpf_cnpj", "");
                                                 }}
-                                                className="accent-green-600"
+                                                className="accent-green-600 w-4 h-4"
                                             />
-                                            Pessoa Física
+                                            Física
                                         </label>
-                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <div className="w-px h-4 bg-slate-200" />
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-green-700">
                                             <input
                                                 type="radio"
                                                 value="PJ"
                                                 checked={field.value === "PJ"}
                                                 onChange={() => {
                                                     field.onChange("PJ");
-                                                    form.setValue("cpf_cnpj", ""); // Limpa ao trocar
+                                                    form.setValue("cpf_cnpj", "");
                                                 }}
-                                                className="accent-green-600"
+                                                className="accent-green-600 w-4 h-4"
                                             />
-                                            Pessoa Jurídica
+                                            Jurídica
                                         </label>
                                     </div>
                                 </FormControl>
@@ -92,8 +90,26 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                             </FormItem>
                         )}
                     />
+                </div>
 
-                    {/* Campo Documento Dinâmico */}
+                {/* Linha 2: Nome Fantasia e Documento */}
+                <div className="md:col-span-8 space-y-1">
+                    <FormField
+                        control={form.control}
+                        name="nome_fantasia"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-slate-600 text-xs font-bold uppercase">Nome Fantasia (Opcional)</FormLabel>
+                                <FormControl>
+                                    <Input className="h-10 border-slate-200 focus:border-green-500 focus:ring-green-500/20" placeholder="Nome comercial" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                <div className="md:col-span-4 space-y-1">
                     <FormField
                         control={form.control}
                         name="cpf_cnpj"
@@ -101,24 +117,24 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                             const isPJ = form.watch("tipo_pessoa") === "PJ";
                             return (
                                 <FormItem>
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center mb-1">
                                         <FormLabel className="text-slate-600 text-xs font-bold uppercase">
                                             {isPJ ? "CNPJ" : "CPF"}
                                         </FormLabel>
                                         {isPJ && (
                                             <button
                                                 type="button"
-                                                className="text-[10px] text-green-600 flex items-center gap-1 disabled:opacity-60 hover:underline"
+                                                className="text-[10px] uppercase font-bold text-green-600 flex items-center gap-1 hover:text-green-700 hover:bg-green-50 px-2 rounded transition-colors"
                                                 onClick={onCnpjLookup}
                                                 disabled={isCnpjLoading}
                                             >
-                                                <Globe className="w-3 h-3" /> {isCnpjLoading ? "Consultando..." : "Pesquisar SEFAZ"}
+                                                <Globe className="w-3 h-3" /> {isCnpjLoading ? "Buscando..." : "Consultar"}
                                             </button>
                                         )}
                                     </div>
                                     <FormControl>
                                         <Input
-                                            className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                            className={`h-10 border-slate-200 focus:border-green-500 focus:ring-green-500/20 ${isCnpjLoading ? 'opacity-50' : ''}`}
                                             {...field}
                                             placeholder={isPJ ? "00.000.000/0000-00" : "000.000.000-00"}
                                             onChange={(e) => {
@@ -134,25 +150,6 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                         }}
                     />
                 </div>
-
-                {/* Nome Fantasia */}
-                <div className="md:col-span-2 space-y-1">
-                    <FormField
-                        control={form.control}
-                        name="nome_fantasia"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className="text-slate-600 text-xs font-bold uppercase">Nome Fantasia</FormLabel>
-                                <FormControl>
-                                    <Input className="h-9 focus-visible:ring-green-600 border-slate-300" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                {/* Categoria seria aqui (mas não vou complicar agora) */}
             </div>
         </div>
     );
