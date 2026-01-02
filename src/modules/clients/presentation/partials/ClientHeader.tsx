@@ -49,39 +49,89 @@ export function ClientHeader({ form, isCnpjLoading, onCnpjLookup }: ClientHeader
                     />
                 </div>
 
-                {/* CPF/CNPJ com Botão de Consulta */}
-                <div className="space-y-1">
+                {/* Tipo de Pessoa e CPF/CNPJ */}
+                <div className="space-y-4">
+                    {/* Seletor Tipo Pessoa */}
                     <FormField
                         control={form.control}
-                        name="cpf_cnpj"
+                        name="tipo_pessoa"
                         render={({ field }) => (
-                            <FormItem>
-                                <div className="flex justify-between items-center">
-                                    <FormLabel className="text-slate-600 text-xs font-bold uppercase">CNPJ / CPF</FormLabel>
-                                    <button
-                                        type="button"
-                                        className="text-[10px] text-green-600 flex items-center gap-1 disabled:opacity-60 hover:underline"
-                                        onClick={onCnpjLookup}
-                                        disabled={isCnpjLoading}
-                                    >
-                                        <Globe className="w-3 h-3" /> {isCnpjLoading ? "Consultando..." : "Pesquisar SEFAZ"}
-                                    </button>
-                                </div>
+                            <FormItem className="space-y-1">
+                                <FormLabel className="text-slate-600 text-xs font-bold uppercase">Tipo de Pessoa</FormLabel>
                                 <FormControl>
-                                    <Input
-                                        className="h-9 focus-visible:ring-green-600 border-slate-300"
-                                        {...field}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            const tipo = form.getValues("tipo_pessoa");
-                                            field.onChange(tipo === "PJ" ? maskCNPJ(val) : maskCPF(val));
-                                        }}
-                                        maxLength={18}
-                                    />
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                value="PF"
+                                                checked={field.value === "PF"}
+                                                onChange={() => {
+                                                    field.onChange("PF");
+                                                    form.setValue("cpf_cnpj", ""); // Limpa ao trocar
+                                                }}
+                                                className="accent-green-600"
+                                            />
+                                            Pessoa Física
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                value="PJ"
+                                                checked={field.value === "PJ"}
+                                                onChange={() => {
+                                                    field.onChange("PJ");
+                                                    form.setValue("cpf_cnpj", ""); // Limpa ao trocar
+                                                }}
+                                                className="accent-green-600"
+                                            />
+                                            Pessoa Jurídica
+                                        </label>
+                                    </div>
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
+                    />
+
+                    {/* Campo Documento Dinâmico */}
+                    <FormField
+                        control={form.control}
+                        name="cpf_cnpj"
+                        render={({ field }) => {
+                            const isPJ = form.watch("tipo_pessoa") === "PJ";
+                            return (
+                                <FormItem>
+                                    <div className="flex justify-between items-center">
+                                        <FormLabel className="text-slate-600 text-xs font-bold uppercase">
+                                            {isPJ ? "CNPJ" : "CPF"}
+                                        </FormLabel>
+                                        {isPJ && (
+                                            <button
+                                                type="button"
+                                                className="text-[10px] text-green-600 flex items-center gap-1 disabled:opacity-60 hover:underline"
+                                                onClick={onCnpjLookup}
+                                                disabled={isCnpjLoading}
+                                            >
+                                                <Globe className="w-3 h-3" /> {isCnpjLoading ? "Consultando..." : "Pesquisar SEFAZ"}
+                                            </button>
+                                        )}
+                                    </div>
+                                    <FormControl>
+                                        <Input
+                                            className="h-9 focus-visible:ring-green-600 border-slate-300"
+                                            {...field}
+                                            placeholder={isPJ ? "00.000.000/0000-00" : "000.000.000-00"}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                field.onChange(isPJ ? maskCNPJ(val) : maskCPF(val));
+                                            }}
+                                            maxLength={18}
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            );
+                        }}
                     />
                 </div>
 

@@ -11,8 +11,7 @@ import { ClientHeader } from "./partials/ClientHeader";
 import { TabAddress } from "./partials/TabAddress";
 import { TabContact } from "./partials/TabContact";
 import { TabTax } from "./partials/TabTax";
-import { CNPJUpload } from "./components/CNPJUpload";
-import { CNPJData } from "../infra/cnpj-parser.service";
+import { TabTax } from "./partials/TabTax";
 
 // Interfaces para props
 interface ClientFormProps {
@@ -36,38 +35,9 @@ export function ClientForm({ onSuccess, initialData }: ClientFormProps) {
     // Estado local apenas para controle visual de abas
     const [activeTab, setActiveTab] = useState("endereco");
 
-    const handleDataExtracted = (data: Partial<CNPJData>) => {
-        if (data.cnpj) form.setValue("document", data.cnpj);
-        if (data.razao_social) form.setValue("name", data.razao_social);
-        if (data.nome_fantasia) form.setValue("fantasy_name", data.nome_fantasia);
-
-        // Endereço
-        if (data.cep) {
-            form.setValue("zip_code", data.cep);
-            handleCepBlur({ target: { value: data.cep } } as any); // Tenta buscar endereço completo via API também
-        }
-        if (data.logradouro) form.setValue("address", data.logradouro);
-        if (data.numero) form.setValue("number", data.numero);
-        if (data.bairro) form.setValue("neighborhood", data.bairro);
-        if (data.municipio) form.setValue("city", data.municipio);
-        if (data.uf) form.setValue("state", data.uf);
-
-        // Contato
-        if (data.email) form.setValue("email", data.email);
-        if (data.telefone) form.setValue("phone", data.telefone);
-
-        toast({
-            title: "Preenchimento Automático",
-            description: "Campos preenchidos com base no Cartão CNPJ.",
-        });
-    };
-
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-                {/* 0. Upload Automático (Novo Feature) */}
-                <CNPJUpload onDataExtracted={handleDataExtracted} />
 
                 {/* 1. Cabeçalho (Dados Principais) */}
                 <ClientHeader
