@@ -140,9 +140,10 @@ export class CNPJParserService {
 
         // 7. Natureza Jurídica (Código e Descrição)
         // Padrão: CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA
-        //         XXXX-X - Descrição...
+        //         XXXX-X ou XXX-X - Descrição...
         //         LOGRADOURO
-        const natJuridicaMatch = normalized.match(/CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA\s+(\d{4}-\d)\s+-\s+(.*?)\s+LOGRADOURO/);
+        // Ajuste: (\d{3,4}-\d) aceita tanto 206-2 quanto 2062-1
+        const natJuridicaMatch = normalized.match(/CÓDIGO E DESCRIÇÃO DA NATUREZA JURÍDICA\s+(\d{3,4}-\d)\s+-\s+(.*?)\s+LOGRADOURO/);
         if (natJuridicaMatch) {
             data.natureza_juridica_code = natJuridicaMatch[1].replace(/[^\d]/g, '');
             data.natureza_juridica_desc = natJuridicaMatch[2].trim();
