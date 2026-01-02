@@ -7,7 +7,7 @@ dnf -y install unzip
 
 # 2. Extract
 mkdir -p /var/www/empresa-flow
-unzip -o /root/app.zip -d /var/www/empresa-flow
+tar -xf /root/app.tar -C /var/www/empresa-flow
 cd /var/www/empresa-flow
 
 # 3. Install Deps

@@ -43,20 +43,35 @@ src/
 
 ## 📅 3. Cronograma de Execução
 
-### FASE 1: Fundação do Módulo de Faturamento [EM ANDAMENTO]
+### FASE 1: Fundação do Módulo de Faturamento [CONCLUÍDO]
 
-- [ ] **1.1 Estrutura**: Criar pastas `src/modules/billing` e subpastas.
-- [ ] **1.2 Schema**: Criar `src/modules/billing/domain/schemas/invoice.schema.ts`.
-- [ ] **1.3 Strategy**: Criar interface `ITaxStrategy.ts` e implementação Mock básica.
-- [ ] **1.4 UI Base**: Criar estrutura do formulário de faturamento (vazia).
+- [x] **1.1 Estrutura**: Criar pastas `src/modules/billing` e subpastas.
+- [x] **1.2 Schema**: Criar `src/modules/billing/domain/schemas/invoice.schema.ts`.
+- [x] **1.3 Strategy**: Criar interface `ITaxStrategy.ts` e implementação básica.
+- [x] **1.4 UI Base**: Criar estrutura do formulário de faturamento (vazia).
+- [x] **1.5 Persistência Real**: Criar tabelas no Supabase e conectar `BillingService`.
 
-### FASE 2: Refatoração do Módulo de Clientes [PENDENTE]
+### FASE 2: Refatoração do Módulo de Clientes [CONCLUÍDO]
 
-- [ ] **2.1 Migração**: Criar pastas `src/modules/clients`.
-- [ ] **2.2 Desacoplamento**: Extrair `clientFormSchema` de `ClientForm.tsx` para `modules/clients/domain/schemas/client.schema.ts`.
-- [ ] **2.3 Lógica**: Mover chamadas de API (BrasilAPI/ViaCEP) para `modules/clients/infra/client.services.ts`.
-- [ ] **2.4 Hooks**: Criar `useClientForm.ts` para gerenciar o estado.
-- [ ] **2.5 UI**: Quebrar `ClientForm.tsx` em `ClientFormHeader`, `TabAddress`, `TabContact`, etc.
+- [x] **2.1 Migração**: Criar pastas `src/modules/clients`.
+- [x] **2.2 Desacoplamento**: Extrair `clientFormSchema`.
+- [x] **2.3 Lógica**: Mover chamadas de API (BrasilAPI/ViaCEP) para `client.services.ts`.
+- [x] **2.4 Hooks**: Criar `useClientForm.ts` para gerenciar o estado.
+- [x] **2.5 UI**: Quebrar `ClientForm.tsx` em Components Partials limpos.
+
+### FASE 2.5: Refatoração do Módulo Financeiro (Contas a Receber) [CONCLUÍDO]
+
+- [x] **2.5.1 Schema**: Criar `accounts-receivable.schema.ts`.
+- [x] **2.5.2 Infra**: Criar `finance.services.ts` para centralizar queries.
+- [x] **2.5.3 Hooks**: Criar `useReceivableForm.ts`.
+- [x] **2.5.4 UI Receber**: Criar novo `ReceivableForm` modular.
+- [x] **2.5.5 Schema Pagar**: Criar `accounts-payable.schema.ts`.
+- [x] **2.5.6 Hook Pagar**: Criar `usePayableForm.ts`.
+- [x] **2.5.7 UI Pagar**: Criar `PayableForm` modular e Proxy legado.
+
+### FASE 2.6: Automação e UX (Feature Extra) [CONCLUÍDO]
+
+- [x] **2.6.1 OCR**: Implementar Leitor de Cartão CNPJ (PDF) e corrigir importação de Worker para produção.
 
 ### FASE 3: Integração e Expansão [FUTURO]
 

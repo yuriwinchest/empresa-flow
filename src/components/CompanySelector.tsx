@@ -24,7 +24,7 @@ export function CompanySelector() {
 
   if (loading) {
     return (
-      <Button variant="outline" className="w-[250px] justify-start" disabled>
+      <Button variant="outline" className="w-[160px] md:w-[250px] justify-start" disabled>
         <Building2 className="mr-2 h-4 w-4" />
         Carregando...
       </Button>
@@ -33,7 +33,7 @@ export function CompanySelector() {
 
   if (companies.length === 0) {
     return (
-      <Button variant="outline" className="w-[250px] justify-start" disabled>
+      <Button variant="outline" className="w-[160px] md:w-[250px] justify-start" disabled>
         <Building2 className="mr-2 h-4 w-4" />
         Nenhuma empresa
       </Button>
@@ -47,7 +47,7 @@ export function CompanySelector() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[250px] justify-between"
+          className="w-[160px] md:w-[250px] justify-between"
         >
           <div className="flex items-center gap-2 truncate">
             <Building2 className="h-4 w-4 shrink-0 text-primary" />
@@ -58,7 +58,7 @@ export function CompanySelector() {
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0">
+      <PopoverContent className="w-[160px] md:w-[250px] p-0">
         <Command>
           <CommandInput placeholder="Buscar empresa..." />
           <CommandList>

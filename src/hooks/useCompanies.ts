@@ -42,7 +42,7 @@ export function useCompanies(userId?: string) {
         return categories;
     };
 
-    const { data: companies, isLoading, error } = useQuery({
+    const { data: companies, isLoading, error, refetch } = useQuery({
         // Include isUsingSecondary in queryKey to differentiate cache between DBs
         queryKey: ["companies", isUsingSecondary, userId],
         queryFn: async () => {
@@ -219,9 +219,10 @@ export function useCompanies(userId?: string) {
         companies,
         isLoading,
         error,
+        refetch,
         createCompany: createMutation,
         updateCompany: updateMutation,
-        deleteCompany: deleteMutation,
+        deleteCompany: deleteMutation.mutateAsync,
         suggestCategories: suggestCategoriesMutation,
     };
 }

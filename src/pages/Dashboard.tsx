@@ -129,7 +129,7 @@ export default function Dashboard() {
               />
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-auto">
             {isLoading ? (
               <div className="text-center py-20">
                 <div className="animate-spin h-10 w-10 border-4 border-green-600 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -145,9 +145,9 @@ export default function Dashboard() {
                 <TableHeader className="bg-slate-50">
                   <TableRow>
                     <TableHead className="font-bold text-slate-700 uppercase p-6">Empresa</TableHead>
-                    <TableHead className="font-bold text-slate-700 uppercase">CNPJ</TableHead>
-                    <TableHead className="font-bold text-slate-700 uppercase">Localização</TableHead>
-                    <TableHead className="font-bold text-slate-700 uppercase">Contato</TableHead>
+                    <TableHead className="font-bold text-slate-700 uppercase hidden md:table-cell">CNPJ</TableHead>
+                    <TableHead className="font-bold text-slate-700 uppercase hidden lg:table-cell">Localização</TableHead>
+                    <TableHead className="font-bold text-slate-700 uppercase hidden xl:table-cell">Contato</TableHead>
                     <TableHead className="font-bold text-slate-700 uppercase text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -168,18 +168,18 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Badge variant="outline" className="font-mono text-slate-600 bg-slate-50">
                           {company.cnpj ? maskCNPJ(company.cnpj) : "N/D"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col text-sm text-slate-600">
                           <span className="font-bold">{company.endereco_cidade || "-"}</span>
                           <span className="text-xs uppercase text-slate-400">{company.endereco_estado || "-"}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <span className="text-sm text-slate-600">{company.email || "-"}</span>
                       </TableCell>
                       <TableCell className="text-right">

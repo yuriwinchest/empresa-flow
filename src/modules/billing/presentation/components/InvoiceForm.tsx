@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Invoice } from "../../domain/schemas/invoice.schema";
 import { useInvoiceForm } from "../hooks/useInvoiceForm";
 import { InvoiceItems } from "./partials/InvoiceItems";
+import { ClientSelect } from "@/modules/clients/presentation/components/ClientSelect";
 import { formatCurrency } from "@/utils/formatters";
 
 interface InvoiceFormProps {
@@ -60,8 +61,11 @@ export function InvoiceForm({ initialData, onSuccess }: InvoiceFormProps) {
                                     <FormItem>
                                         <FormLabel className="text-xs font-bold uppercase text-slate-500">Cliente</FormLabel>
                                         <FormControl>
-                                            {/* Placeholder para Select de Clientes */}
-                                            <Input placeholder="ID do Cliente (Temporário)" {...field} className="h-9" />
+                                            <ClientSelect
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                error={!!form.formState.errors.clientId}
+                                            />
                                         </FormControl>
                                     </FormItem>
                                 )}
