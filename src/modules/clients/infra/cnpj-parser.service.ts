@@ -142,6 +142,22 @@ export class CNPJParserService {
         const situacaoMatch = normalized.match(/SITUAÇÃO CADASTRAL\s+(.*?)\s+DATA DA SITUAÇÃO/);
         if (situacaoMatch) data.situacao_cadastral = situacaoMatch[1].trim();
 
+        // Consolidar objetos aninhados conforme esperado pela interface
+        data.endereco = {
+            logradouro: data.logradouro,
+            numero: data.numero,
+            complemento: data.complemento,
+            bairro: data.bairro,
+            municipio: data.municipio,
+            uf: data.uf,
+            cep: data.cep
+        };
+
+        data.contato = {
+            email: data.email,
+            telefone: data.telefone
+        };
+
         return data;
     }
 }
