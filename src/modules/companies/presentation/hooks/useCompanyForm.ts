@@ -140,9 +140,9 @@ export function useCompanyForm(companyId?: string) {
         const { nfse_settings, ...rest } = data;
 
         const companyPayload: any = {
-            ...rest
-            // owner_id removido para evitar erro "column not found"
-            // A associação é feita via trigger na tabela user_companies
+            ...rest,
+            // Mantemos o owner_id para garantir a consistência com o schema novo
+            owner_id: session?.user?.id
         };
 
         if (companyId) {
