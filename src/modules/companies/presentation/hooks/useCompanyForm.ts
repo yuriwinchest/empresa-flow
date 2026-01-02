@@ -300,6 +300,11 @@ export function useCompanyForm(companyId?: string) {
             // Mantém compatibilidade
             if (data.natureza_juridica) form.setValue("natureza_juridica", data.natureza_juridica);
 
+            if (data.porte) form.setValue("porte", data.porte);
+            if (data.data_abertura) form.setValue("data_abertura", data.data_abertura.split('/').reverse().join('-')); // DD/MM/YYYY -> YYYY-MM-DD
+            if (data.situacao_cadastral) form.setValue("situacao_cadastral", data.situacao_cadastral);
+            if (data.data_situacao_cadastral) form.setValue("data_situacao_cadastral", data.data_situacao_cadastral.split('/').reverse().join('-'));
+
             toast({ title: "Leitura Concluída", description: "Dados extraídos do cartão CNPJ." });
 
         } catch (error: any) {

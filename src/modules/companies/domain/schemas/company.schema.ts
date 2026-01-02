@@ -24,6 +24,11 @@ export const CompanySchema = z.object({
     natureza_juridica_code: z.string().optional(),
     natureza_juridica_desc: z.string().optional(),
 
+    porte: z.string().optional(),
+    data_abertura: z.string().optional(), // YYYY-MM-DD
+    situacao_cadastral: z.string().optional(),
+    data_situacao_cadastral: z.string().optional(),
+
     cnae: z.string().optional(), // Mantido para compatibilidade
     cnae_principal_code: z.string().optional(),
     cnae_principal_desc: z.string().optional(),

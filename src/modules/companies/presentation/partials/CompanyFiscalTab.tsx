@@ -141,6 +141,65 @@ export function CompanyFiscalTab({ onCnpjFileSelect, onCnpjSearch, isSearching }
                 />
             </div>
 
+            {/* Novos Campos Extraídos */}
+            <div className="col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField
+                    control={control}
+                    name="porte"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Porte</FormLabel>
+                            <FormControl>
+                                <Input placeholder="ME, EPP..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={control}
+                    name="data_abertura"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Data Abertura</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={control}
+                    name="situacao_cadastral"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Situação</FormLabel>
+                            <FormControl>
+                                <Input placeholder="ATIVA..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={control}
+                    name="data_situacao_cadastral"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Data Situação</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
             <FormField
                 control={control}
                 name="natureza_juridica"

@@ -185,6 +185,9 @@ export class CNPJParserService {
         const situacaoMatch = normalized.match(/SITUAÇÃO CADASTRAL\s+(.*?)\s+DATA DA SITUAÇÃO/);
         if (situacaoMatch) data.situacao_cadastral = situacaoMatch[1].trim();
 
+        const dataSituacaoMatch = normalized.match(/DATA DA SITUAÇÃO CADASTRAL\s+(\d{2}\/\d{2}\/\d{4})/);
+        if (dataSituacaoMatch) data.data_situacao_cadastral = dataSituacaoMatch[1];
+
         // Consolidar objetos aninhados conforme esperado pela interface
         data.endereco = {
             logradouro: data.logradouro,
