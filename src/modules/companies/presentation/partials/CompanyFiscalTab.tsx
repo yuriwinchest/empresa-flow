@@ -110,14 +110,45 @@ export function CompanyFiscalTab({ onCnpjFileSelect, onCnpjSearch, isSearching }
                 )}
             />
 
+            {/* Campos de CNAE - Adicionados para exibir o que foi extraído */}
+            <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                    control={control}
+                    name="cnae_principal_desc"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                            <FormLabel>CNAE Principal</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Código e Descrição" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={control}
+                    name="cnae_secundario_desc"
+                    render={({ field }) => (
+                        <FormItem className="col-span-2">
+                            <FormLabel>CNAEs Secundários</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Códigos e Descrições" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
             <FormField
                 control={control}
                 name="natureza_juridica"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-2">
                         <FormLabel>Natureza Jurídica</FormLabel>
                         <FormControl>
-                            <Input {...field} />
+                            <Input placeholder="Código e Descrição" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
