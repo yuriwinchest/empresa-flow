@@ -20,7 +20,7 @@ interface CompanyDocument {
 
 export function useCompanyForm(companyId?: string) {
     const { toast } = useToast();
-    const { session } = useAuth();
+    const { session, activeClient: supabase } = useAuth(); // Shadow the global 'supabase' with the authenticated one
     const [isLoading, setIsLoading] = useState(false);
     const [isSearchingCnpj, setIsSearchingCnpj] = useState(false);
 
@@ -56,6 +56,7 @@ export function useCompanyForm(companyId?: string) {
             setIsLoading(true);
             try {
                 // Dispara as 3 requisições simultaneamente para economizar tempo
+                // Usando 'supabase' que agora é o activeClient
                 const [companyRes, nfseRes, docsRes] = await Promise.all([
                     (supabase.from("companies" as any).select("*").eq("id", companyId).single() as any),
                     (supabase.from("company_nfse_settings" as any).select("*").eq("company_id", companyId).maybeSingle() as any),
@@ -100,7 +101,7 @@ export function useCompanyForm(companyId?: string) {
         loadData();
 
         return () => { isMounted = false; };
-    }, [companyId, session, toast, form]);
+    }, [companyId, session, toast, form, supabase]); // Add supabase to dependency
 
 
     // =========================================================================
@@ -155,7 +156,13 @@ export function useCompanyForm(companyId?: string) {
             .select()
             .single() as any);
 
-        if (error) throw new Error(`Erro ao salvar dados da empresa: ${error.message}`);
+        if (error) {
+            console.error("Erro detalhado do Supabase:", error);
+            if (error.code === '23505') {
+                throw new Error("Uma empresa com este CNPJ já está cadastrada.");
+            }
+            throw new Error(`Erro ao salvar dados da empresa: ${error.message} (Code: ${error.code})`);
+        }
 
         return savedCompany as Company;
     };
@@ -195,7 +202,7 @@ export function useCompanyForm(companyId?: string) {
     // Função Principal de Submit (Orquestradora)
     const onSubmit = async (data: Company) => {
         if (!session?.user?.id) {
-            toast({ title: "Erro", description: "Sessão inválida.", variant: "destructive" });
+            toast({ title: "Erro", description: "Sessão inválida. Tente recarregar a página.", variant: "destructive" });
             return;
         }
 

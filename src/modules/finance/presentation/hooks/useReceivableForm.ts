@@ -28,10 +28,11 @@ export function useReceivableForm(initialData?: Partial<AccountsReceivable>, onS
     const form = useForm<AccountsReceivable>({
         resolver: zodResolver(AccountsReceivableSchema),
         defaultValues: {
-            status: 'PENDING',
-            recurrence: 'NONE',
+            status: 'pending',
+            recurrence: 'none',
             company_id: selectedCompany?.id,
             issue_date: new Date(),
+            amount: 0,
             ...initialData // Merge com dados iniciais se houver
         }
     });
@@ -39,19 +40,20 @@ export function useReceivableForm(initialData?: Partial<AccountsReceivable>, onS
     // 3. Mutation para Salvar
     const saveMutation = useMutation({
         mutationFn: async (values: AccountsReceivable) => {
-            // Salva o Recebível
-            const { data: savedReceivable, error } = await service.saveReceivable({
+            // Remove nulls e garante company_id
+            const payload = {
                 ...values,
-                company_id: selectedCompany!.id // Garante ID da empresa
-            });
+                company_id: selectedCompany!.id
+            };
+
+            // Salva o Recebível
+            const { data: savedReceivable, error } = await service.saveReceivable(payload);
 
             if (error) throw new Error(error.message);
 
             // Se foi marcado como PAGO na criação/edição e tem conta bancária, gera transação
-            // (Esta lógica pode ser refatorada para trigger no banco dps)
-            if (values.status === 'PAID' && values.payment_amount && values.payment_method) {
-                // Implementar lógica de transação se necessário aqui ou no service
-                // service.createTransaction(...)
+            if (values.status === 'paid' && values.bank_account_id) {
+                await service.createTransactionFromReceivable(savedReceivable.id, values, selectedCompany!.id);
             }
 
             return savedReceivable;

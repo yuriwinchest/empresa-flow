@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -13,22 +13,45 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, ListTree } from "lucide-react";
 import { useCompanies } from "@/hooks/useCompanies";
 import { Company } from "@/types/company";
 import { maskCNPJ } from "@/utils/masks";
 import { CompanyForm } from "@/modules/companies/presentation/CompanyForm";
 
 export default function Empresas() {
-    const { user } = useAuth();
+    const { user, activeClient } = useAuth();
     const { companies, isLoading, error: companiesError, deleteCompany, refetch: refetchCompanies } = useCompanies(user?.id);
 
     // UI State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+    const [companiesWithCharts, setCompaniesWithCharts] = useState<Set<string>>(new Set());
+
+    // Verificar quais empresas têm plano de contas
+    useEffect(() => {
+        if (!companies || companies.length === 0) return;
+
+        const checkChartOfAccounts = async () => {
+            const companyIds = companies.map(c => c.id);
+            const { data } = await activeClient
+                .from('chart_of_accounts')
+                .select('company_id')
+                .in('company_id', companyIds);
+
+            if (data) {
+                const idsWithCharts = new Set(data.map(d => d.company_id));
+                setCompaniesWithCharts(idsWithCharts);
+            }
+        };
+
+        checkChartOfAccounts();
+    }, [companies, activeClient]);
 
     const handleEdit = (company: Company) => {
         setEditingCompany(company);
@@ -69,7 +92,11 @@ export default function Empresas() {
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogContent className="max-w-5xl p-0 border-none shadow-2xl overflow-hidden flex flex-col h-[90vh] max-h-[900px] w-[95vw] md:w-full">
+                    <DialogContent className="max-w-7xl p-0 border-none shadow-2xl overflow-hidden flex flex-col h-[92vh] max-h-[950px] w-[98vw] md:w-full">
+                        <DialogTitle className="sr-only">Formulário de Empresa</DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Preencha os dados abaixo para cadastrar ou editar uma unidade de negócio.
+                        </DialogDescription>
                         <CompanyForm
                             key={editingCompany?.id || 'new'}
                             companyId={editingCompany?.id}
@@ -117,6 +144,7 @@ export default function Empresas() {
                                             <TableHead className="font-black text-slate-600 text-xs uppercase hidden md:table-cell">Documento</TableHead>
                                             <TableHead className="font-black text-slate-600 text-xs uppercase hidden lg:table-cell">E-mail de Contato</TableHead>
                                             <TableHead className="font-black text-slate-600 text-xs uppercase hidden xl:table-cell">Localização</TableHead>
+                                            <TableHead className="font-black text-slate-600 text-xs uppercase hidden lg:table-cell text-center">Plano de Contas</TableHead>
                                             <TableHead className="font-black text-slate-600 text-xs uppercase text-center">Ações</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -143,6 +171,18 @@ export default function Empresas() {
                                                         <span className="text-sm text-slate-600 font-bold">{company.endereco_cidade || "-"}</span>
                                                         <span className="text-xs text-slate-400 font-black uppercase">{company.endereco_estado || ""}</span>
                                                     </div>
+                                                </TableCell>
+                                                <TableCell className="hidden lg:table-cell text-center">
+                                                    {companiesWithCharts.has(company.id) ? (
+                                                        <Badge className="bg-green-100 text-green-700 border-green-200 gap-1.5 font-bold">
+                                                            <ListTree className="w-3 h-3" />
+                                                            Configurado
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-slate-400 border-slate-200 font-bold">
+                                                            Não configurado
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-center">
                                                     <Button

@@ -37,7 +37,10 @@ export function PayableTaxTab({ form }: PayableTaxTabProps) {
                                             // Vou usar number nativo
                                             type="number" step="0.01"
                                             {...field}
-                                            onChange={e => field.onChange(parseFloat(e.target.value))}
+                                            onChange={e => {
+                                                const val = parseFloat(e.target.value);
+                                                field.onChange(isNaN(val) ? 0 : val);
+                                            }}
                                             value={field.value || 0}
                                         />
                                     </FormControl>

@@ -16,7 +16,6 @@ export class FinanceService {
                 .from("chart_of_accounts")
                 .select("id, name, code")
                 .eq("company_id", companyId)
-                .eq("type", "receita")
                 .eq("is_analytic", true)
                 .order("code"),
 
@@ -82,7 +81,7 @@ export class FinanceService {
                 category_id: data.category_id,
                 type: "credit",
                 amount: data.amount,
-                date: data.payment_date || new Date(),
+                date: data.receive_date || new Date(),
                 description: `Recebimento: ${data.description}`,
                 status: "completed",
                 origin_id: receivableId,

@@ -143,14 +143,20 @@ export function useClientForm({ onSuccess, initialData }: UseClientFormProps) {
         }
 
         try {
-            // Prepara Payload (Remove máscaras)
+            // Prepara Payload (Remove máscaras e campos que não existem no banco)
+            const { cep, ...rest } = values;
+
             const payload = {
-                ...values,
+                ...rest,
                 company_id: selectedCompany.id,
-                endereco_cep: unmask(values.cep || ""),
+                endereco_cep: unmask(cep || ""),
                 cpf_cnpj: unmask(values.cpf_cnpj || ""),
                 telefone: unmask(values.telefone || ""),
-                // ... remover máscaras de outros campos
+                telefone_2: unmask(values.telefone_2 || ""),
+                celular: unmask(values.celular || ""),
+                fax: unmask(values.fax || ""),
+                dados_bancarios_titular_cpf_cnpj: unmask(values.dados_bancarios_titular_cpf_cnpj || ""),
+                is_active: true
             };
 
             // Lógica de Persistência (Supabase)

@@ -12,9 +12,12 @@ export interface ClientOption {
 export function useClientSearch() {
     const { activeClient } = useAuth();
     const { selectedCompany } = useCompany();
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [clients, setClients] = useState<ClientOption[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const refresh = () => setRefreshTrigger(prev => prev + 1);
 
     useEffect(() => {
         const fetchClients = async () => {
@@ -26,6 +29,7 @@ export function useClientSearch() {
                     .from("clients")
                     .select("id, razao_social, cpf_cnpj")
                     .eq("company_id", selectedCompany.id)
+                    .order('razao_social')
                     .limit(20);
 
                 if (searchTerm) {
@@ -51,12 +55,13 @@ export function useClientSearch() {
 
         const debounce = setTimeout(fetchClients, 300);
         return () => clearTimeout(debounce);
-    }, [searchTerm, selectedCompany, activeClient]);
+    }, [searchTerm, selectedCompany, activeClient, refreshTrigger]);
 
     return {
         searchTerm,
         setSearchTerm,
         clients,
-        isLoading
+        isLoading,
+        refresh
     };
 }

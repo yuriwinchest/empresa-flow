@@ -1,40 +1,54 @@
 
 import { z } from "zod";
 
-// Schema para Contas a Receber (Baseado na análise do formulário antigo)
+// Schema para Contas a Receber Sincronizado com o Banco de Dados
 export const AccountsReceivableSchema = z.object({
     id: z.string().uuid().optional(),
-    company_id: z.string().uuid("Empresa obrigatória"),
+    company_id: z.string().uuid("Empresa obrigatória").optional(),
 
     // Dados Básicos
     description: z.string().min(3, "Descrição muito curta").max(255),
-    client_id: z.string().uuid("Cliente obrigatório").nullable().optional(), // Pode ser venda avulsa? Validar regra.
+    client_id: z.string().uuid("Cliente obrigatório").nullable().optional(),
 
     // Valores e Datas
     amount: z.number().min(0.01, "Valor deve ser maior que zero"),
     due_date: z.date({ required_error: "Data de vencimento obrigatória" }),
     issue_date: z.date().default(() => new Date()),
-    competence_date: z.date().optional(), // Data de competência
+    register_date: z.date().default(() => new Date()),
+    receive_date: z.date().optional().nullable(), // Sync com o DB
 
     // Classificação
-    category_id: z.string().uuid("Categoria obrigatória").optional(), // Validar se é obrigatório no DB
-    department_id: z.string().uuid().optional(),
-    cost_center_id: z.string().uuid().optional(),
-    project_id: z.string().uuid().optional(), // Novo campo mencionado anteriormente
+    category_id: z.string().uuid("Categoria obrigatória").optional().nullable(),
+    department_id: z.string().uuid().optional().nullable(),
+    project_id: z.string().uuid().optional().nullable(),
 
     // Status e Recorrência
-    status: z.enum(['PENDING', 'PAID', 'OVERDUE', 'CANCELLED']).default('PENDING'),
-    recurrence: z.enum(['NONE', 'MONTHLY', 'WEEKLY', 'YEARLY']).default('NONE'),
-    recurrence_end_date: z.date().optional(),
+    status: z.enum(['pending', 'paid', 'overdue', 'cancelled']).default('pending'), // Lowercase sync
+    recurrence: z.enum(['none', 'monthly', 'weekly', 'yearly', 'daily']).default('none'),
 
-    // Pagamento Realizado
-    payment_date: z.date().optional(),
-    payment_method: z.string().optional(),
-    payment_amount: z.number().optional(), // Valor pago (pode ser parcial)
+    // Detalhes Pagamento
+    payment_method: z.string().optional().nullable(),
+    bank_account_id: z.string().uuid().optional().nullable(),
+    transaction_id: z.string().uuid().optional().nullable(),
+    invoice_number: z.string().optional().nullable(),
 
     // Metadados
-    notes: z.string().optional(),
-    document_number: z.string().optional(), // Nro Nota Fiscal ou Boleto
+    observations: z.string().optional().nullable(),
+    file_url: z.string().optional().nullable(),
+
+    // Impostos
+    pis_amount: z.number().default(0),
+    pis_retain: z.boolean().default(false),
+    cofins_amount: z.number().default(0),
+    cofins_retain: z.boolean().default(false),
+    csll_amount: z.number().default(0),
+    csll_retain: z.boolean().default(false),
+    ir_amount: z.number().default(0),
+    ir_retain: z.boolean().default(false),
+    iss_amount: z.number().default(0),
+    iss_retain: z.boolean().default(false),
+    inss_amount: z.number().default(0),
+    inss_retain: z.boolean().default(false),
 });
 
 export type AccountsReceivable = z.infer<typeof AccountsReceivableSchema>;

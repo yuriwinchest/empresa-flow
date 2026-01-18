@@ -1,0 +1,167 @@
+==============================================
+INSTRUÇÕES PARA CRIAR O PLANO DE CONTAS
+==============================================
+
+Por favor, execute os seguintes SQLs MANUALMENTE no Supabase Dashboard:
+https://supabase.com/dashboard/project/lhkrxbhqagvuetoigqkl/sql/new
+
+Execute EM ORDEM, um de cada vez:
+
+==============================================
+PASSO 1: Criar Tipos ENUM
+==============================================
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_type') THEN
+        CREATE TYPE account_type AS ENUM (
+            'asset', 'liability', 'equity', 'revenue', 'expense', 'cost'
+        );
+    END IF;
+END $$;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_nature') THEN
+        CREATE TYPE account_nature AS ENUM ('debit', 'credit');
+    END IF;
+END $$;
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_status') THEN
+        CREATE TYPE account_status AS ENUM ('active', 'inactive', 'archived');
+    END IF;
+END $$;
+
+==============================================
+PASSO 2: Criar Tabela chart_of_accounts
+==============================================
+
+CREATE TABLE IF NOT EXISTS chart_of_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    parent_id UUID REFERENCES chart_of_accounts(id) ON DELETE SET NULL,
+    level INTEGER NOT NULL DEFAULT 1,
+    path TEXT,
+    account_type account_type NOT NULL,
+    account_nature account_nature NOT NULL,
+    is_analytical BOOLEAN DEFAULT true,
+    is_synthetic BOOLEAN DEFAULT false,
+    accepts_manual_entry BOOLEAN DEFAULT true,
+    show_in_dre BOOLEAN DEFAULT false,
+    dre_group VARCHAR(100),
+    dre_order INTEGER,
+    tax_classification VARCHAR(100),
+    reference_code VARCHAR(50),
+    status account_status DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    CONSTRAINT unique_code_per_company UNIQUE (company_id, code),
+    CONSTRAINT valid_level CHECK (level > 0 AND level <= 10),
+    CONSTRAINT analytical_or_synthetic CHECK (is_analytical != is_synthetic)
+);
+
+==============================================
+PASSO 3: Criar Índices
+==============================================
+
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_company ON chart_of_accounts(company_id);
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_parent ON chart_of_accounts(parent_id);
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_type ON chart_of_accounts(account_type);
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_code ON chart_of_accounts(company_id, code);
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_path ON chart_of_accounts(path);
+CREATE INDEX IF NOT EXISTS idx_chart_of_accounts_dre ON chart_of_accounts(company_id, show_in_dre, dre_order);
+
+==============================================
+PASSO 4: Habilitar RLS
+==============================================
+
+ALTER TABLE chart_of_accounts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their company accounts" ON chart_of_accounts;
+CREATE POLICY "Users can view their company accounts" ON chart_of_accounts
+    FOR SELECT USING (company_id IN (
+        SELECT id FROM companies WHERE owner_id = auth.uid()
+    ));
+
+DROP POLICY IF EXISTS "Users can insert accounts for their companies" ON chart_of_accounts;
+CREATE POLICY "Users can insert accounts for their companies" ON chart_of_accounts
+    FOR INSERT WITH CHECK (company_id IN (
+        SELECT id FROM companies WHERE owner_id = auth.uid()
+    ));
+
+DROP POLICY IF EXISTS "Users can update their company accounts" ON chart_of_accounts;
+CREATE POLICY "Users can update their company accounts" ON chart_of_accounts
+    FOR UPDATE USING (company_id IN (
+        SELECT id FROM companies WHERE owner_id = auth.uid()
+    ));
+
+DROP POLICY IF EXISTS "Users can delete their company accounts" ON chart_of_accounts;
+CREATE POLICY "Users can delete their company accounts" ON chart_of_accounts
+    FOR DELETE USING (company_id IN (
+        SELECT id FROM companies WHERE owner_id = auth.uid()
+    ));
+
+==============================================
+PASSO 5: Criar Tabelas de Templates
+==============================================
+
+CREATE TABLE IF NOT EXISTS account_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    industry VARCHAR(100),
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS account_template_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_id UUID NOT NULL REFERENCES account_templates(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    parent_code VARCHAR(50),
+    level INTEGER NOT NULL,
+    account_type account_type NOT NULL,
+    account_nature account_nature NOT NULL,
+    is_analytical BOOLEAN DEFAULT true,
+    show_in_dre BOOLEAN DEFAULT false,
+    dre_group VARCHAR(100),
+    dre_order INTEGER,
+    CONSTRAINT unique_code_per_template UNIQUE (template_id, code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_template_items_template ON account_template_items(template_id);
+
+ALTER TABLE account_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE account_template_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view templates" ON account_templates;
+CREATE POLICY "Anyone can view templates" ON account_templates FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can view template items" ON account_template_items;
+CREATE POLICY "Anyone can view template items" ON account_template_items FOR SELECT USING (true);
+
+==============================================
+PASSO 6: Inserir Dados Iniciais
+==============================================
+
+Ver arquivo: supabase/migrations/20260103140001_chart_tables.sql
+Linhas 150-218 (INSERT INTO account_template_items...)
+
+==============================================
+APÓS EXECUTAR TODOS OS PASSOS:
+==============================================
+
+1. Vá em Settings > API
+2. Clique em "Reload Schema"
+3. Aguarde 30 segundos
+4. Teste a aplicação
+
+==============================================

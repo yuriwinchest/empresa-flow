@@ -1,194 +1,187 @@
+
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Pencil, Trash2, Landmark } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Plus, Wallet, ArrowRight, MoreVertical, Pencil, Trash2, Landmark } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BankAccountSheet } from "@/components/bank-accounts/BankAccountSheet";
-import { useQuery } from "@tanstack/react-query";
-
-import { useAuth } from "@/contexts/AuthContext";
-import { useCompany } from "@/contexts/CompanyContext";
-import { Badge } from "@/components/ui/badge";
-import { logDeletion } from "@/lib/audit";
+import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
+import { useBankAccounts } from "@/modules/finance/presentation/hooks/useBankAccounts";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function ContasBancarias() {
-    const { selectedCompany } = useCompany();
-    const { activeClient, isUsingSecondary, user } = useAuth();
-    const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [editingItem, setEditingItem] = useState<any>(null);
-    const [searchTerm, setSearchTerm] = useState("");
+    const { accounts, isLoading, createAccount } = useBankAccounts();
+    const navigate = useNavigate();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const normalizeSearch = (value: unknown) =>
-        String(value ?? "")
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .trim();
-
-    const { data: accounts, isLoading, refetch } = useQuery({
-        queryKey: ["bank_accounts", selectedCompany?.id, isUsingSecondary],
-        queryFn: async () => {
-            if (!selectedCompany?.id) return [];
-            const { data, error } = await activeClient
-                .from("bank_accounts")
-                .select("*")
-                .eq("company_id", selectedCompany.id)
-                .order("name");
-
-            if (error) throw error;
-            return data;
-        },
-        enabled: !!selectedCompany?.id,
+    // Form State simples para criação
+    const [newAccount, setNewAccount] = useState({
+        name: "",
+        bank_name: "",
+        initial_balance: 0,
+        agency: "",
+        account_number: ""
     });
 
-    const handleEdit = (item: any) => {
-        setEditingItem(item);
-        setIsSheetOpen(true);
+    const handleCreate = async () => {
+        await createAccount(newAccount);
+        setIsDialogOpen(false);
+        setNewAccount({ name: "", bank_name: "", initial_balance: 0, agency: "", account_number: "" });
     };
-
-    const handleNew = () => {
-        setEditingItem(null);
-        setIsSheetOpen(true);
-    };
-
-    const handleDelete = async (acc: any) => {
-        const ok = window.confirm(`Excluir a conta "${acc.name}"?`);
-        if (!ok) return;
-        const { error } = await activeClient.from("bank_accounts").delete().eq("id", acc.id);
-        if (!error) {
-            refetch();
-            if (user?.id) {
-                await logDeletion(activeClient, {
-                    userId: user.id,
-                    companyId: selectedCompany?.id || null,
-                    entity: "bank_accounts",
-                    entityId: acc.id,
-                    payload: { name: acc.name },
-                });
-            }
-        }
-    };
-    const filteredAccounts = accounts?.filter((acc) => {
-        const needle = normalizeSearch(searchTerm);
-        if (!needle) return true;
-        const agConta = acc.agencia && acc.conta ? `${acc.agencia} / ${acc.conta}${acc.digito ? "-" + acc.digito : ""}` : "";
-        const formattedBalance = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(acc.current_balance ?? 0);
-        const numberBalance = new Intl.NumberFormat("pt-BR").format(acc.current_balance ?? 0);
-        const balanceRaw = String(acc.current_balance ?? "");
-        const balanceComma = balanceRaw.replace(".", ",");
-
-        return normalizeSearch(
-            [
-                acc.name,
-                acc.banco,
-                agConta,
-                acc.current_balance,
-                formattedBalance,
-                numberBalance,
-                balanceRaw,
-                balanceComma,
-            ]
-                .filter(Boolean)
-                .join(" "),
-        ).includes(needle);
-    });
 
     return (
         <AppLayout title="Contas Bancárias">
-            <div className="space-y-6 animate-fade-in">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                        <Landmark className="h-8 w-8 text-primary" />
-                        Contas Bancárias
-                    </h2>
-                    <Button onClick={handleNew}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nova Conta
-                    </Button>
+            <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                            <Landmark className="h-8 w-8 text-emerald-600" />
+                            Contas Bancárias
+                        </h2>
+                        <p className="text-slate-500">Gerencie suas contas e saldos.</p>
+                    </div>
+
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="bg-emerald-600 hover:bg-emerald-700">
+                                <Plus className="mr-2 h-4 w-4" /> Nova Conta
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Adicionar Conta Bancária</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>Nome da Conta (Apelido)</Label>
+                                    <Input
+                                        placeholder="Ex: Itaú Principal"
+                                        value={newAccount.name}
+                                        onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Instituição Financeira</Label>
+                                    <Input
+                                        placeholder="Ex: Itaú"
+                                        value={newAccount.bank_name}
+                                        onChange={e => setNewAccount({ ...newAccount, bank_name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Agência</Label>
+                                        <Input
+                                            placeholder="0000"
+                                            value={newAccount.agency}
+                                            onChange={e => setNewAccount({ ...newAccount, agency: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Número da Conta</Label>
+                                        <Input
+                                            placeholder="00000-0"
+                                            value={newAccount.account_number}
+                                            onChange={e => setNewAccount({ ...newAccount, account_number: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Saldo Inicial (R$)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0.00"
+                                        value={newAccount.initial_balance}
+                                        onChange={e => setNewAccount({ ...newAccount, initial_balance: Number(e.target.value) })}
+                                    />
+                                </div>
+                                <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={handleCreate}>
+                                    Salvar Conta
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                        <CardTitle>Minhas Contas</CardTitle>
-                        <div className="relative w-72">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar por nome ou banco..."
-                                className="pl-8"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {isLoading && (
+                        <div className="col-span-full text-center py-12">
+                            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-emerald-600 mb-2" />
+                            <p className="text-muted-foreground">Carregando contas...</p>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nome</TableHead>
-                                    <TableHead>Banco</TableHead>
-                                    <TableHead>Ag/Conta</TableHead>
-                                    <TableHead>Saldo Atual</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                            Carregando contas...
-                                        </TableCell>
-                                    </TableRow>
-                                ) : filteredAccounts?.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                            Nenhuma conta bancária encontrada.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredAccounts?.map((acc) => (
-                                        <TableRow key={acc.id}>
-                                            <TableCell className="font-medium">{acc.name}</TableCell>
-                                            <TableCell>{acc.banco || "-"}</TableCell>
-                                            <TableCell>
-                                                {acc.agencia && acc.conta ? `${acc.agencia} / ${acc.conta}${acc.digito ? '-' + acc.digito : ''}` : '-'}
-                                            </TableCell>
-                                            <TableCell className={acc.current_balance >= 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.current_balance)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleEdit(acc)}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(acc)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                    )}
 
-                <BankAccountSheet
-                    isOpen={isSheetOpen}
-                    onClose={() => {
-                        setIsSheetOpen(false);
-                        setEditingItem(null);
-                    }}
-                    dataToEdit={editingItem}
-                />
+                    {!isLoading && accounts.length === 0 && (
+                        <div className="col-span-full text-center py-12 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                            <Wallet className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                            <h3 className="text-lg font-medium text-slate-900">Nenhuma conta cadastrada</h3>
+                            <p className="text-slate-500 max-w-sm mx-auto mt-2">Cadastre sua primeira conta bancária para controlar seu saldo e fazer conciliações.</p>
+                            <Button variant="outline" className="mt-6 border-emerald-600 text-emerald-700 hover:bg-emerald-50" onClick={() => setIsDialogOpen(true)}>
+                                Cadastrar Agora
+                            </Button>
+                        </div>
+                    )}
+
+                    {accounts.map((account) => (
+                        <Card key={account.id} className="hover:shadow-lg transition-all duration-300 group border-l-4 border-l-emerald-500 overflow-hidden">
+                            <CardHeader className="pb-2 relative">
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <CardTitle className="flex items-center text-lg font-bold text-slate-800">
+                                            <Wallet className="mr-2 h-5 w-5 text-emerald-600" />
+                                            {account.name}
+                                        </CardTitle>
+                                        <CardDescription className="font-medium text-slate-500">
+                                            {account.bank_name} • Ag: {account.agency || '-'} CC: {account.account_number || '-'}
+                                        </CardDescription>
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 -mt-2 -mr-2">
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem>
+                                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="text-red-600">
+                                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="mt-4">
+                                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Saldo Atual</p>
+                                    <div className="flex items-baseline justify-between">
+                                        <p className={`text-2xl font-bold ${account.current_balance >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.current_balance || 0)}
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            className="bg-slate-900 text-white hover:bg-slate-800 w-full group-hover:bg-emerald-600 transition-colors"
+                                            onClick={() => navigate(`/conciliacao?conta=${account.id}`)}
+                                        >
+                                            Conciliar Extrato <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             </div>
-        </AppLayout>
+        </AppLayout >
     );
+}
+
+function RefreshCw({ className }: { className?: string }) {
+    return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>;
 }

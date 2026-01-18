@@ -49,7 +49,10 @@ export function ReceivableMainTab({ form, categories, bankAccounts }: Receivable
                                     className="font-bold text-lg"
                                     placeholder="0.00"
                                     {...field}
-                                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                                    onChange={e => {
+                                        const val = parseFloat(e.target.value);
+                                        field.onChange(isNaN(val) ? 0 : val);
+                                    }}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -133,9 +136,9 @@ export function ReceivableMainTab({ form, categories, bankAccounts }: Receivable
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="PENDING">Pendente (A Receber)</SelectItem>
-                                <SelectItem value="PAID">Recebido</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                                <SelectItem value="pending">Pendente (A Receber)</SelectItem>
+                                <SelectItem value="paid">Recebido</SelectItem>
+                                <SelectItem value="cancelled">Cancelado</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />

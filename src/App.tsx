@@ -24,6 +24,7 @@ import Configuracoes from "./pages/Configuracoes";
 import ImportacaoOmie from "./pages/ImportacaoOmie";
 import ImportData from "./pages/ImportData";
 import Ajuda from "./pages/Ajuda";
+import CRM from "./pages/CRM";
 
 import ProdutosDepartamentos from "./pages/ProdutosDepartamentos";
 import Recibos from "./pages/Recibos";
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/relatorios/*" element={<Relatorios />} />
                 <Route path="/configuracoes" element={<Configuracoes />} />
+                <Route path="/crm" element={<CRM />} />
 
                 <Route path="/operacional" element={<ProdutosDepartamentos />} />
                 <Route path="/recibos" element={<Recibos />} />

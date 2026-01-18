@@ -80,7 +80,10 @@ export function PayableMainTab({ form }: PayableMainTabProps) {
                                     type="number"
                                     step="0.01"
                                     {...field}
-                                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                                    onChange={e => {
+                                        const val = parseFloat(e.target.value);
+                                        field.onChange(isNaN(val) ? 0 : val);
+                                    }}
                                 />
                             </FormControl>
                             <FormMessage />
@@ -184,7 +187,7 @@ export function PayableMainTab({ form }: PayableMainTabProps) {
                 )}
             </div>
 
-            <SupplierSheet isOpen={isSupplierSheetOpen} onOpenChange={setIsSupplierSheetOpen} />
+            <SupplierSheet isOpen={isSupplierSheetOpen} onClose={() => setIsSupplierSheetOpen(false)} />
         </div>
     );
 }
