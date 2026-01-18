@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
     Plus, Trash2, Edit2, ChevronRight, ChevronDown,
@@ -56,6 +57,22 @@ interface ChartOfAccountsManagerProps {
     companyId: string;
 }
 
+type ChartOfAccountType = ChartOfAccount["account_type"];
+type ChartOfAccountNature = ChartOfAccount["account_nature"];
+
+type ChartOfAccountFormData = {
+    code: string;
+    name: string;
+    description: string;
+    account_type: ChartOfAccountType;
+    account_nature: ChartOfAccountNature;
+    parent_id: string | null;
+    is_analytic: boolean;
+    show_in_dre: boolean;
+    dre_group: string;
+    dre_order: number;
+};
+
 const accountTypeLabels = {
     asset: 'Ativo',
     liability: 'Passivo',
@@ -75,7 +92,7 @@ const accountTypeColors = {
 };
 
 export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProps) {
-    const { activeClient } = useAuth();
+    const { activeClient, user } = useAuth();
     const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
     const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
     const [isLoading, setIsLoading] = useState(true);
@@ -87,24 +104,38 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
     const [uploadingFiles, setUploadingFiles] = useState(false);
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<ChartOfAccountFormData>({
         code: '',
         name: '',
         description: '',
-        account_type: 'expense' as const,
-        account_nature: 'debit' as const,
-        parent_id: null as string | null,
+        account_type: 'expense',
+        account_nature: 'debit',
+        parent_id: null,
         is_analytic: true,
         show_in_dre: false,
         dre_group: '',
         dre_order: 0,
     });
 
-    useEffect(() => {
-        checkInitialSetup();
-    }, [companyId]);
+    const loadAccounts = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const { data, error } = await activeClient
+                .from('chart_of_accounts')
+                .select('id, code, name, description, account_type, account_nature, level, parent_id, is_analytic, show_in_dre, dre_group, dre_order, company_id')
+                .eq('company_id', companyId)
+                .order('code');
 
-    const checkInitialSetup = async () => {
+            if (error) throw error;
+            setAccounts(data || []);
+        } catch (error: any) {
+            toast.error('Erro ao carregar plano de contas: ' + error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [activeClient, companyId]);
+
+    const checkInitialSetup = useCallback(async () => {
         try {
             setIsLoading(true);
             const { data, error } = await activeClient
@@ -118,32 +149,18 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
             if (!data || data.length === 0) {
                 setShowInitDialog(true);
             } else {
-                loadAccounts();
+                await loadAccounts();
             }
         } catch (error: any) {
             toast.error('Erro ao verificar plano de contas: ' + error.message);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeClient, companyId, loadAccounts]);
 
-    const loadAccounts = async () => {
-        try {
-            setIsLoading(true);
-            const { data, error } = await activeClient
-                .from('chart_of_accounts')
-                .select('*')
-                .eq('company_id', companyId)
-                .order('code');
-
-            if (error) throw error;
-            setAccounts(data || []);
-        } catch (error: any) {
-            toast.error('Erro ao carregar plano de contas: ' + error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    useEffect(() => {
+        checkInitialSetup();
+    }, [checkInitialSetup]);
 
     const loadAttachments = async (accountId: string) => {
         try {
@@ -170,7 +187,8 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                 .from('account_templates')
                 .select('id')
                 .eq('is_default', true)
-                .single();
+                .limit(1)
+                .maybeSingle();
 
             if (templateError || !template) {
                 toast.error('Template padrão não encontrado');
@@ -213,8 +231,8 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                     code: item.code,
                     name: item.name,
                     description: item.description,
-                    account_type: item.account_type,
-                    account_nature: item.account_nature,
+                    account_type: item.account_type as ChartOfAccountType,
+                    account_nature: item.account_nature as ChartOfAccountNature,
                     level: item.level,
                     parent_id: item.parent_code ? codeToIdMap.get(item.parent_code) || null : null,
                     is_analytic: item.is_analytic,
@@ -300,7 +318,8 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
 
             for (const file of Array.from(files)) {
                 // Upload para storage
-                const filePath = `chart-accounts/${companyId}/${accountId}/${Date.now()}_${file.name}`;
+                // Use companyId as the first folder to satisfy RLS policy
+                const filePath = `${companyId}/chart-accounts/${accountId}/${Date.now()}_${file.name}`;
                 const { error: uploadError } = await activeClient.storage
                     .from('company-docs')
                     .upload(filePath, file);
@@ -316,6 +335,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                         file_path: filePath,
                         file_size: file.size,
                         content_type: file.type,
+                        created_by: user?.id
                     }]);
 
                 if (dbError) throw dbError;
@@ -398,7 +418,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
             code: account.code,
             name: account.name,
             description: account.description || '',
-            account_type: account.account_type,
+            account_type: account.account_type as ChartOfAccountType,
             account_nature: account.account_nature,
             parent_id: account.parent_id,
             is_analytic: account.is_analytic,
@@ -414,7 +434,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
             ...formData,
             parent_id: parentAccount.id,
             code: parentAccount.code + '.',
-            account_type: parentAccount.account_type,
+            account_type: parentAccount.account_type as ChartOfAccountType,
             account_nature: parentAccount.account_nature,
         });
         setShowForm(true);
@@ -458,7 +478,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
             const isExpanded = expandedAccounts.has(account.id);
 
             return (
-                <div key={account.id} style={{ marginLeft: `${level * 24}px` }}>
+                <div key={account.id} className={`transition-all ml-${level * 6}`}>
                     <div className="flex items-center gap-2 py-2 px-3 hover:bg-slate-50 rounded-lg group">
                         {hasChildren ? (
                             <button
@@ -538,11 +558,11 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
         <div className="space-y-4">
             {/* Dialog de Inicialização */}
             <Dialog open={showInitDialog} onOpenChange={setShowInitDialog}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Inicializar Plano de Contas</DialogTitle>
+                        <DialogTitle>Plano de Contas</DialogTitle>
                         <DialogDescription>
-                            Escolha como deseja criar o plano de contas para esta empresa
+                            Esta empresa ainda não possui um plano de contas. Como deseja iniciar?
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3">
@@ -557,7 +577,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                                     Usar Template Padrão
                                 </div>
                                 <div className="text-sm text-slate-500 mt-1">
-                                    Criar plano de contas baseado no modelo padrão (53 contas)
+                                    Criar plano de contas baseado no modelo padrão
                                 </div>
                             </div>
                         </Button>
@@ -582,7 +602,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
 
             {/* Dialog de Anexos */}
             <Dialog open={!!selectedAccount} onOpenChange={() => setSelectedAccount(null)}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Anexos - {selectedAccount?.name}</DialogTitle>
                         <DialogDescription>
@@ -607,6 +627,8 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                                 type="file"
                                 multiple
                                 className="hidden"
+                                aria-label="Selecionar arquivos para anexar"
+                                title="Selecionar arquivos"
                                 onChange={(e) => {
                                     if (e.target.files && selectedAccount) {
                                         handleFileUpload(selectedAccount.id, e.target.files);
@@ -669,7 +691,7 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
 
             {/* Formulário */}
             {showForm && (
-                <Card className="p-4">
+                <Card className="p-4 max-h-[70vh] overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -739,24 +761,26 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
                         </div>
 
                         <div className="flex gap-4">
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="is_analytic"
                                     checked={formData.is_analytic}
-                                    onChange={(e) => setFormData({ ...formData, is_analytic: e.target.checked })}
-                                    className="rounded"
+                                    onCheckedChange={(checked) => setFormData({ ...formData, is_analytic: !!checked })}
                                 />
-                                <span className="text-sm">Conta Analítica (aceita lançamentos)</span>
-                            </label>
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
+                                <Label htmlFor="is_analytic" className="text-sm font-normal cursor-pointer">
+                                    Conta Analítica (aceita lançamentos)
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="show_in_dre"
                                     checked={formData.show_in_dre}
-                                    onChange={(e) => setFormData({ ...formData, show_in_dre: e.target.checked })}
-                                    className="rounded"
+                                    onCheckedChange={(checked) => setFormData({ ...formData, show_in_dre: !!checked })}
                                 />
-                                <span className="text-sm">Exibir no DRE</span>
-                            </label>
+                                <Label htmlFor="show_in_dre" className="text-sm font-normal cursor-pointer">
+                                    Exibir no DRE
+                                </Label>
+                            </div>
                         </div>
 
                         <div className="flex gap-2">
@@ -782,8 +806,11 @@ export function ChartOfAccountsManager({ companyId }: ChartOfAccountsManagerProp
             {/* Árvore de Contas */}
             <Card className="p-4">
                 {accounts.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                        Nenhuma conta cadastrada. Clique em "Nova Categoria" para começar.
+                    <div className="text-center py-8 text-slate-500 space-y-4">
+                        <p>Nenhuma conta cadastrada.</p>
+                        <Button variant="outline" onClick={() => setShowInitDialog(true)}>
+                            Inicializar com Template
+                        </Button>
                     </div>
                 ) : (
                     <div className="space-y-1">
